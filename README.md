@@ -155,8 +155,8 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
 **Note:** Never commit the `.env` file to a public repository. For production, use Cloudflare secrets instead of `.env`:
 
 ```bash
-wrangler secret put GITHUB_CLIENT_ID
-wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put GITHUB_CLIENT_ID_WEB
+wrangler secret put GITHUB_CLIENT_SECRET_WEB
 bun run deploy:prod
 ```
 
@@ -168,6 +168,8 @@ bun run android        # Build + run on Android device/emulator
 bun run ios            # Build + run on iOS simulator
 bun run web            # Web preview
 ```
+
+For native OAuth with `awesomegithubapp://oauth/callback`, use a development build (`bun run android` / `bun run ios`) instead of Expo Go.
 
 ---
 

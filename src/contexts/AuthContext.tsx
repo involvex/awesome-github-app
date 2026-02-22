@@ -1,7 +1,13 @@
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { setToken, clearToken, getOctokit } from "../lib/api/github";
 import { getItem, setItem, deleteItem } from "../lib/storage";
 import * as AuthSession from "expo-auth-session";
@@ -56,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     "https://awesomegithubapp-api.involvex.workers.dev/token";
   const isWeb = Platform.OS === "web";
   const clientId = isWeb ? webClientId : nativeClientId;
+  const codeVerifierRef = useRef<string | undefined>(undefined);
 
   const redirectUri = isWeb
     ? AuthSession.makeRedirectUri({ path: "oauth/callback" })
@@ -70,6 +77,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     discovery,
   );
+
+  useEffect(() => {
+    if (request?.codeVerifier) {
+      codeVerifierRef.current = request.codeVerifier;
+    }
+  }, [request?.codeVerifier]);
+
+  useEffect(() => {
+    if (!isWeb && webClientId && nativeClientId === webClientId) {
+      console.warn(
+        "Native and web OAuth client IDs are identical. Ensure native uses the native OAuth app client ID.",
+      );
+    }
+  }, [isWeb, nativeClientId, webClientId]);
 
   // Load persisted user on mount
   useEffect(() => {
@@ -92,9 +113,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (response?.type === "success") {
       const { code } = response.params;
-      exchangeCodeForToken(code, request?.codeVerifier);
+      const codeVerifier = request?.codeVerifier ?? codeVerifierRef.current;
+      if (!codeVerifier) {
+        console.error(
+          "Missing PKCE code_verifier on OAuth callback; cannot redeem code.",
+          { platform: Platform.OS, redirectUri },
+        );
+        return;
+      }
+      exchangeCodeForToken(code, codeVerifier);
     }
-  }, [request?.codeVerifier, response]);
+  }, [redirectUri, request?.codeVerifier, response]);
 
   const exchangeCodeForToken = async (code: string, codeVerifier?: string) => {
     setIsLoading(true);

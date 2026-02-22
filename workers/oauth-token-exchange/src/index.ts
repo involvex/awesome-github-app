@@ -52,6 +52,16 @@ export default {
           { status: 400 },
         );
       }
+      if (client_id && !code_verifier) {
+        return Response.json(
+          {
+            error: "missing_code_verifier",
+            error_description:
+              "The token request is missing PKCE code_verifier. Redeploy both app and worker with the latest OAuth changes.",
+          },
+          { status: 400 },
+        );
+      }
 
       // Exchange code for token with GitHub
       const response = await fetch(

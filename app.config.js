@@ -15,7 +15,10 @@ module.exports = ({ config }) => {
       oauth: {
         ...oauthConfig,
         githubClientId:
-          process.env.GITHUB_CLIENT_ID ?? oauthConfig.githubClientId ?? "",
+          process.env.GITHUB_CLIENT_ID_NATIVE ??
+          process.env.GITHUB_CLIENT_ID ??
+          oauthConfig.githubClientId ??
+          "",
         // Web-only OAuth app — separate GitHub OAuth App with localhost callback
         webGithubClientId:
           process.env.GITHUB_CLIENT_ID_WEB ??
