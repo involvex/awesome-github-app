@@ -105,10 +105,16 @@ For development, update `app.json` with your GitHub OAuth Client IDs:
 "extra": {
   "oauth": {
     "githubClientId": "YOUR_NATIVE_CLIENT_ID",
-    "webGithubClientId": "YOUR_WEB_CLIENT_ID"
+    "webGithubClientId": "YOUR_WEB_CLIENT_ID",
+    "webTokenExchangeUrl": "https://awesomegithubapp-api.involvex.workers.dev/token"
   }
 }
 ```
+
+Use separate OAuth apps per platform:
+
+- Native OAuth app callback: `awesomegithubapp://oauth/callback`
+- Web OAuth app callback: `http://localhost:8081/oauth/callback`
 
 ### 2.2. Set Up Cloudflare Worker for Web OAuth
 
@@ -129,9 +135,11 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
 3. **Add your GitHub OAuth credentials to `.env`:**
 
    ```bash
-   GITHUB_CLIENT_ID=your_web_client_id
-   GITHUB_CLIENT_SECRET=your_web_client_secret
+    GITHUB_CLIENT_ID_WEB=your_web_client_id
+    GITHUB_CLIENT_SECRET_WEB=your_web_client_secret
    ```
+
+   `GITHUB_CLIENT_ID_WEB` in the worker must match `webGithubClientId` used by the app.
 
 4. **Deploy the worker:**
 

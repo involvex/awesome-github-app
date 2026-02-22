@@ -33,7 +33,8 @@
     "extra": {
       "oauth": {
         "githubClientId": "Ov23liKNCY2M0k4TqVQ0",
-        "webGithubClientId": "Ov23lif9XwyUQpykNqpp"
+        "webGithubClientId": "Ov23lif9XwyUQpykNqpp",
+        "webTokenExchangeUrl": "https://awesomegithubapp-api.involvex.workers.dev/token"
       }
     }
   }

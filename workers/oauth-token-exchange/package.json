@@ -4,7 +4,7 @@
   "description": "Cloudflare Worker for GitHub OAuth token exchange",
   "main": "src/index.ts",
   "scripts": {
-    "deploy": "wrangler deploy -e .env -c wrangler.toml",
+    "deploy": "wrangler deploy --env-file .env -c wrangler.toml",
     "deploy:prod": "wrangler deploy -c wrangler.toml",
     "dev": "wrangler dev"
   },

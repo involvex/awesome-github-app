@@ -1,22 +1,31 @@
 // @ts-check
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const appJson = require("./app.json");
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const dotenv = require("dotenv");
 
 dotenv.config();
 
-/** @var {import('expo/config').ExpoConfig} */
-module.exports = {
-  ...appJson.expo,
-  extra: {
-    ...appJson.expo.extra,
-    oauth: {
-      githubClientId:
-        process.env.GITHUB_CLIENT_ID ?? appJson.expo.extra.oauth.githubClientId,
-      // Web-only OAuth app — separate GitHub OAuth App with localhost callback
-      webGithubClientId: process.env.GITHUB_CLIENT_ID_WEB ?? "",
-      webGithubClientSecret: process.env.GITHUB_CLIENT_SECRET_WEB ?? "",
+/** @param {import("expo/config").ConfigContext} param0 */
+module.exports = ({ config }) => {
+  const oauthConfig = config.extra?.oauth ?? {};
+
+  return {
+    ...config,
+    extra: {
+      ...config.extra,
+      oauth: {
+        ...oauthConfig,
+        githubClientId:
+          process.env.GITHUB_CLIENT_ID ?? oauthConfig.githubClientId ?? "",
+        // Web-only OAuth app — separate GitHub OAuth App with localhost callback
+        webGithubClientId:
+          process.env.GITHUB_CLIENT_ID_WEB ??
+          oauthConfig.webGithubClientId ??
+          "",
+        webTokenExchangeUrl:
+          process.env.GITHUB_WEB_TOKEN_EXCHANGE_URL ??
+          oauthConfig.webTokenExchangeUrl ??
+          "https://awesomegithubapp-api.involvex.workers.dev/token",
+      },
     },
-  },
+  };
 };

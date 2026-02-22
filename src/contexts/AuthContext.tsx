@@ -51,7 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
   const webClientId =
     Constants.expoConfig?.extra?.oauth?.webGithubClientId ?? "";
-  const isWeb = Platform.OS === "web" && !!webClientId;
+  const webTokenExchangeUrl =
+    Constants.expoConfig?.extra?.oauth?.webTokenExchangeUrl ??
+    "https://awesomegithubapp-api.involvex.workers.dev/token";
+  const isWeb = Platform.OS === "web";
   const clientId = isWeb ? webClientId : nativeClientId;
 
   const redirectUri = AuthSession.makeRedirectUri(
@@ -96,14 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const exchangeCodeForToken = async (code: string) => {
     setIsLoading(true);
+    let tokenUrl = "https://github.com/login/oauth/access_token";
     try {
-      // On web, proxy through local API route to avoid CORS.
-      // On native, call GitHub directly (no CORS restrictions in native fetch).
-      // On web, proxy through Cloudflare Worker to avoid CORS and keep secrets secure.
-      // On native, call GitHub directly (no CORS restrictions in native fetch).
-      const tokenUrl = isWeb
-        ? "https://awesomegithubapp-api.involvex.workers.dev/token"
-        : "https://github.com/login/oauth/access_token";
+      tokenUrl = isWeb ? webTokenExchangeUrl : tokenUrl;
 
       const tokenRes = await fetch(tokenUrl, {
         method: "POST",
@@ -119,13 +117,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirect_uri: redirectUri,
         }),
       });
-      const tokenData = await tokenRes.json();
-      if (!tokenData.access_token) throw new Error("No access token returned");
+      const tokenData: {
+        access_token?: string;
+        error?: string;
+        error_description?: string;
+      } = await tokenRes.json();
+      if (!tokenRes.ok || !tokenData.access_token) {
+        const details = [tokenData.error, tokenData.error_description]
+          .filter(Boolean)
+          .join(": ");
+        throw new Error(
+          details || `No access token returned (status ${tokenRes.status})`,
+        );
+      }
 
       await setToken(tokenData.access_token);
       await fetchAndStoreUser();
     } catch (e) {
-      console.error("Token exchange failed:", e);
+      console.error(
+        "Token exchange failed:",
+        e,
+        "platform:",
+        Platform.OS,
+        "clientId:",
+        clientId,
+        "tokenUrl:",
+        tokenUrl,
+        "redirectUri:",
+        redirectUri,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +174,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async () => {
+    if (!clientId) {
+      console.error(
+        `Missing OAuth client ID for ${isWeb ? "web" : "native"} platform`,
+      );
+      return;
+    }
     await promptAsync();
   };
 
