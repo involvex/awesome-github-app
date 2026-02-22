@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "awesome-github-app",
+    "slug": "awesome-github-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ],
+    "android": {
+      "package": "com.involvex.awesomegithubapp"
+    }
+  }
+}
