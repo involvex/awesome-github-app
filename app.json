@@ -33,8 +33,7 @@
     "extra": {
       "oauth": {
         "githubClientId": "Ov23liKNCY2M0k4TqVQ0",
-        "webGithubClientId": "Ov23lif9XwyUQpykNqpp",
-        "webGithubClientSecret": "430ca7cb372debf773c6fecf7aca589ab8c2f1a6"
+        "webGithubClientId": "Ov23lif9XwyUQpykNqpp"
       }
     }
   }

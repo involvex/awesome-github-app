@@ -1,0 +1,14 @@
+{
+  "name": "awesomegithubapp-api",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for GitHub OAuth token exchange",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "wrangler deploy -e .env -c wrangler.toml",
+    "deploy:prod": "wrangler deploy -c wrangler.toml",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.18.0"
+  }
+}

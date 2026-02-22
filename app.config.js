@@ -6,7 +6,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-/** @type {import("expo/config").ExpoConfig} */
+/** @var {import('expo/config').ExpoConfig} */
 module.exports = {
   ...appJson.expo,
   extra: {
@@ -15,9 +15,8 @@ module.exports = {
       githubClientId:
         process.env.GITHUB_CLIENT_ID ?? appJson.expo.extra.oauth.githubClientId,
       // Web-only OAuth app — separate GitHub OAuth App with localhost callback
-      webGithubClientId: dotenv.config().parsed?.GITHUB_CLIENT_ID_WEB ?? "",
-      webGithubClientSecret:
-        dotenv.config().parsed?.GITHUB_CLIENT_SECRET_WEB ?? "",
+      webGithubClientId: process.env.GITHUB_CLIENT_ID_WEB ?? "",
+      webGithubClientSecret: process.env.GITHUB_CLIENT_SECRET_WEB ?? "",
     },
   },
 };

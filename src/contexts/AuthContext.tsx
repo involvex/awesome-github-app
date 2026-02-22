@@ -51,8 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
   const webClientId =
     Constants.expoConfig?.extra?.oauth?.webGithubClientId ?? "";
-  const webClientSecret =
-    Constants.expoConfig?.extra?.oauth?.webGithubClientSecret ?? "";
   const isWeb = Platform.OS === "web" && !!webClientId;
   const clientId = isWeb ? webClientId : nativeClientId;
 
@@ -101,8 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // On web, proxy through local API route to avoid CORS.
       // On native, call GitHub directly (no CORS restrictions in native fetch).
+      // On web, proxy through Cloudflare Worker to avoid CORS and keep secrets secure.
+      // On native, call GitHub directly (no CORS restrictions in native fetch).
       const tokenUrl = isWeb
-        ? "/api/github-token"
+        ? "https://awesomegithubapp-api.involvex.workers.dev/token"
         : "https://github.com/login/oauth/access_token";
 
       const tokenRes = await fetch(tokenUrl, {
@@ -113,9 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           client_id: clientId,
-          ...(isWeb && webClientSecret
-            ? { client_secret: webClientSecret }
-            : {}),
+          // On web, the Cloudflare Worker handles client_secret
+          ...(isWeb ? {} : {}),
           code,
           redirect_uri: redirectUri,
         }),

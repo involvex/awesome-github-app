@@ -12,3 +12,12 @@ ios
 */.env
 .claude/settings.local.json
 claude-hooks.log
+workers/oauth-token-exchange/node_modules
+workers/oauth-token-exchange/.env
+workers/oauth-token-exchange/*.env
+workers/oauth-token-exchange/.env.*
+workers/oauth-token-exchange/dist
+workers/oauth-token-exchange/build
+workers/oauth-token-exchange/out
+workers/oauth-token-exchange/.wrangler
+workers/oauth-token-exchange/wrangler.toml

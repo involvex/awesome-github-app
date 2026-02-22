@@ -91,28 +91,66 @@ bun install
 2. Set **Homepage URL** to: `http://localhost:8081` (for local web development)
 3. Set **Authorization callback URL** to all three (one per line):
    ```
-   https://auth.expo.io/@involvex/awesome-github-app
    awesomegithubapp://oauth/callback
    http://localhost:8081/oauth/callback
+   https://your-production-domain.com/oauth/callback
    ```
 4. Copy your **Client ID** and **Client Secret**
-5. Create a **second** OAuth App for web-only deployment (or use the same app with localhost URL)
 
 ### 2.1. Configure OAuth Credentials
 
-For development, update `app.json` with your GitHub OAuth credentials:
+For development, update `app.json` with your GitHub OAuth Client IDs:
 
 ```json
 "extra": {
   "oauth": {
     "githubClientId": "YOUR_NATIVE_CLIENT_ID",
-    "webGithubClientId": "YOUR_WEB_CLIENT_ID",
-    "webGithubClientSecret": "YOUR_WEB_CLIENT_SECRET"
+    "webGithubClientId": "YOUR_WEB_CLIENT_ID"
   }
 }
 ```
 
-**Important:** Never commit `webGithubClientSecret` to a public repository. Use environment variables in production.
+### 2.2. Set Up Cloudflare Worker for Web OAuth
+
+The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens without exposing the client secret.
+
+1. **Navigate to the worker directory:**
+
+   ```bash
+   cd workers/oauth-token-exchange
+   ```
+
+2. **Create environment file:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Add your GitHub OAuth credentials to `.env`:**
+
+   ```bash
+   GITHUB_CLIENT_ID=your_web_client_id
+   GITHUB_CLIENT_SECRET=your_web_client_secret
+   ```
+
+4. **Deploy the worker:**
+
+   ```bash
+   bun install
+   bun run deploy
+   ```
+
+5. **The worker will be deployed at:** `https://awesomegithubapp-api.involvex.workers.dev`
+
+**Important:** The GitHub OAuth callback URL should be set to your **app's** callback (e.g., `http://localhost:8081/oauth/callback` or `awesomegithubapp://oauth/callback`), NOT the Worker URL. The Worker is only used internally by your app to exchange the authorization code for an access token.
+
+**Note:** Never commit the `.env` file to a public repository. For production, use Cloudflare secrets instead of `.env`:
+
+```bash
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
+bun run deploy:prod
+```
 
 ### 3. Run
 

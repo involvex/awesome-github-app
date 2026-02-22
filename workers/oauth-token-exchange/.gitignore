@@ -1,0 +1,12 @@
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# Wrangler
+.wrangler/
+dist/
+
+# macOS
+.DS_Store
