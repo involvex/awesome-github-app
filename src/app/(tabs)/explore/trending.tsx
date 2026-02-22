@@ -3,6 +3,7 @@ import { useTrending, type TrendingPeriod } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
 import { SkeletonCard } from "../../../components/ui/Skeleton";
+import type { SearchRepoItem } from "../../../lib/api/hooks";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAppTheme } from "../../../lib/theme";
@@ -44,7 +45,7 @@ const LANGUAGES: { label: string; value: string }[] = [
   { label: "Zig", value: "Zig" },
 ];
 
-function TrendingCard({ item, rank }: { item: any; rank: number }) {
+function TrendingCard({ item, rank }: { item: SearchRepoItem; rank: number }) {
   const theme = useAppTheme();
   const router = useRouter();
   return (
@@ -53,13 +54,13 @@ function TrendingCard({ item, rank }: { item: any; rank: number }) {
         styles.card,
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
-      onPress={() => router.push(`/repo/${item.owner.login}/${item.name}`)}
+      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.rank, { color: theme.muted }]}>#{rank}</Text>
         <Avatar
-          uri={item.owner.avatar_url}
-          name={item.owner.login}
+          uri={item.owner?.avatar_url}
+          name={item.owner?.login ?? ""}
           size={24}
         />
         <Text

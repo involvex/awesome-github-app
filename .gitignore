@@ -9,3 +9,6 @@ build
 android
 ios
 .mira
+*/.env
+.claude/settings.local.json
+claude-hooks.log

@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { setToken, clearToken, getOctokit } from "../lib/api/github";
 import * as SecureStore from "expo-secure-store";
 import * as AuthSession from "expo-auth-session";
+import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 export interface GitHubUser {
@@ -46,7 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const clientId = Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
+  const nativeClientId =
+    Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
+  const webClientId =
+    Constants.expoConfig?.extra?.oauth?.webGithubClientId ?? "";
+  const webClientSecret =
+    Constants.expoConfig?.extra?.oauth?.webGithubClientSecret ?? "";
+  const isWeb = Platform.OS === "web" && !!webClientId;
+  const clientId = isWeb ? webClientId : nativeClientId;
 
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: "awesomegithubapp",
@@ -101,6 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
           body: JSON.stringify({
             client_id: clientId,
+            ...(isWeb && webClientSecret
+              ? { client_secret: webClientSecret }
+              : {}),
             code,
             redirect_uri: redirectUri,
           }),

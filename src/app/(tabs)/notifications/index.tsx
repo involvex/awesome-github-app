@@ -20,6 +20,10 @@ import { useState } from "react";
 
 type Segment = "all" | "participating" | "assigned" | "mentioned";
 
+type NotificationItem = NonNullable<
+  ReturnType<typeof useNotifications>["data"]
+>[number];
+
 const SEGMENTS: { label: string; value: Segment }[] = [
   { label: "All", value: "all" },
   { label: "Participating", value: "participating" },
@@ -35,7 +39,7 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Commit: "git-commit-outline",
 };
 
-function NotifRow({ item }: { item: any }) {
+function NotifRow({ item }: { item: NotificationItem }) {
   const theme = useAppTheme();
   const { mutate: markRead } = useMarkNotificationRead();
   const isUnread = item.unread;
@@ -98,7 +102,7 @@ export default function NotificationsScreen() {
   const { data, isLoading, refetch, isRefetching } = useNotifications();
   const { mutate: markAll, isPending } = useMarkAllRead();
 
-  const filtered = (data ?? []).filter((n: any) => {
+  const filtered = (data ?? []).filter((n: NotificationItem) => {
     if (segment === "all") return true;
     if (segment === "participating") return n.reason === "participating";
     if (segment === "assigned") return n.reason === "assign";
@@ -106,7 +110,9 @@ export default function NotificationsScreen() {
     return true;
   });
 
-  const unreadCount = (data ?? []).filter((n: any) => n.unread).length;
+  const unreadCount = (data ?? []).filter(
+    (n: NotificationItem) => n.unread,
+  ).length;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

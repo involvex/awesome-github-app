@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
+import type { SearchRepoItem } from "../../../lib/api/hooks";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useSearch } from "../../../lib/api/hooks";
@@ -28,17 +29,17 @@ const QUICK_TOPICS = [
   { label: "🦀 Rust", query: "language:rust stars:>500" },
 ];
 
-function RepoRow({ item }: { item: any }) {
+function RepoRow({ item }: { item: SearchRepoItem }) {
   const theme = useAppTheme();
   const router = useRouter();
   return (
     <Pressable
       style={[styles.repoRow, { borderBottomColor: theme.border }]}
-      onPress={() => router.push(`/repo/${item.owner.login}/${item.name}`)}
+      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
     >
       <Avatar
-        uri={item.owner.avatar_url}
-        name={item.owner.login}
+        uri={item.owner?.avatar_url}
+        name={item.owner?.login ?? ""}
         size={32}
       />
       <View style={styles.repoInfo}>
@@ -121,7 +122,7 @@ export default function ExploreScreen() {
           />
         ) : (
           <FlatList
-            data={data as any[]}
+            data={data as SearchRepoItem[]}
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => <RepoRow item={item} />}
           />

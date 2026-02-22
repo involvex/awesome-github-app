@@ -25,7 +25,7 @@ export default function PagesScreen() {
   const router = useRouter();
   const { data } = useRepo(owner!, repo!);
 
-  const hasPages = !!(data as any)?.has_pages;
+  const hasPages = !!data?.has_pages;
   const pagesUrl = `https://${owner}.github.io/${repo}/`;
 
   const [customDomain, setCustomDomain] = useState("");

@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
+import type { SearchUserItem } from "../../../lib/api/hooks";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useSearch } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
@@ -66,7 +67,7 @@ export default function DevelopersScreen() {
         />
       ) : (
         <FlatList
-          data={data as any[]}
+          data={data as SearchUserItem[]}
           keyExtractor={item => String(item.id)}
           renderItem={({ item }) => (
             <Pressable

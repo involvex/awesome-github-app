@@ -12,7 +12,11 @@ import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 
-function EventCard({ event }: { event: any }) {
+type ActivityEvent = NonNullable<
+  ReturnType<typeof useActivity>["data"]
+>["pages"][number][number];
+
+function EventCard({ event }: { event: ActivityEvent }) {
   const theme = useAppTheme();
   const iconMap: Record<string, { icon: string; label: string }> = {
     PushEvent: { icon: "git-commit", label: "pushed to" },
@@ -26,7 +30,7 @@ function EventCard({ event }: { event: any }) {
     DeleteEvent: { icon: "trash", label: "deleted from" },
     PublicEvent: { icon: "globe", label: "made public" },
   };
-  const { icon, label } = iconMap[event.type] ?? {
+  const { icon, label } = iconMap[event.type ?? ""] ?? {
     icon: "ellipsis-horizontal",
     label: "activity on",
   };
@@ -39,7 +43,7 @@ function EventCard({ event }: { event: any }) {
       ]}
     >
       <Ionicons
-        name={icon as any}
+        name={icon as keyof typeof Ionicons.glyphMap}
         size={18}
         color={theme.primary}
         style={styles.eventIcon}
@@ -54,16 +58,28 @@ function EventCard({ event }: { event: any }) {
             {event.repo?.name}
           </Text>
         </Text>
-        {event.type === "PushEvent" && event.payload?.commits?.[0] && (
-          <Text
-            style={[styles.eventMeta, { color: theme.subtle }]}
-            numberOfLines={1}
-          >
-            {event.payload.commits[0].message}
-          </Text>
-        )}
+        {event.type === "PushEvent" &&
+          (event.payload as { commits?: Array<{ message: string }> })
+            ?.commits?.[0] && (
+            <Text
+              style={[styles.eventMeta, { color: theme.subtle }]}
+              numberOfLines={1}
+            >
+              {
+                (
+                  event.payload as {
+                    commits?: Array<{ message: string }>;
+                  }
+                ).commits![0].message
+              }
+            </Text>
+          )}
         <Text style={[styles.eventTime, { color: theme.muted }]}>
-          {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+          {event.created_at
+            ? formatDistanceToNow(new Date(event.created_at), {
+                addSuffix: true,
+              })
+            : ""}
         </Text>
       </View>
     </View>

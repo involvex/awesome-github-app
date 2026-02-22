@@ -21,6 +21,13 @@ import { formatDistanceToNow } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
+type WorkflowItem = NonNullable<
+  ReturnType<typeof useWorkflows>["data"]
+>[number];
+type WorkflowRun = NonNullable<
+  ReturnType<typeof useWorkflowRuns>["data"]
+>[number];
+
 const STATUS_ICON: Record<
   string,
   { icon: keyof typeof Ionicons.glyphMap; color: string }
@@ -39,13 +46,13 @@ function RunRow({
   owner,
   repo,
 }: {
-  run: any;
+  run: WorkflowRun;
   owner: string;
   repo: string;
 }) {
   const theme = useAppTheme();
   const { mutate: cancel, isPending } = useCancelRun(owner, repo);
-  const statusKey = run.conclusion ?? run.status;
+  const statusKey = run.conclusion ?? run.status ?? "";
   const { icon, color } = STATUS_ICON[statusKey] ?? {
     icon: "ellipse-outline" as const,
     color: theme.muted,
@@ -179,7 +186,7 @@ export default function WorkflowsScreen() {
                 All runs
               </Text>
             </Pressable>
-            {workflows.map((wf: any) => (
+            {workflows.map((wf: WorkflowItem) => (
               <Pressable
                 key={wf.id}
                 style={[

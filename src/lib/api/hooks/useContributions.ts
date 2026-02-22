@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { getGraphQL } from "../graphql";
 
-interface ContributionDay {
+export interface ContributionDay {
   date: string;
   contributionCount: number;
   color: string;
 }
 
-interface ContributionWeek {
+export interface ContributionWeek {
   contributionDays: ContributionDay[];
 }
 

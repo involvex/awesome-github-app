@@ -1,7 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
+import { Octokit } from "@octokit/rest";
 import { getOctokit } from "../github";
 
 export type SearchType = "repositories" | "users" | "issues";
+
+type OctokitInst = InstanceType<typeof Octokit>;
+export type SearchRepoItem = Awaited<
+  ReturnType<OctokitInst["search"]["repos"]>
+>["data"]["items"][number];
+export type SearchUserItem = Awaited<
+  ReturnType<OctokitInst["search"]["users"]>
+>["data"]["items"][number];
+export type SearchIssueItem = Awaited<
+  ReturnType<OctokitInst["search"]["issuesAndPullRequests"]>
+>["data"]["items"][number];
 
 export function useSearch(query: string, type: SearchType = "repositories") {
   return useQuery({

@@ -11,12 +11,22 @@ export {
   useMarkNotificationRead,
   useMarkAllRead,
 } from "./useNotifications";
-export { useSearch, type SearchType } from "./useSearch";
+export {
+  useSearch,
+  type SearchType,
+  type SearchRepoItem,
+  type SearchUserItem,
+  type SearchIssueItem,
+} from "./useSearch";
 export { useMyRepos, type RepoFilter, type RepoSort } from "./useMyRepos";
+export {
+  useContributions,
+  type ContributionDay,
+  type ContributionWeek,
+} from "./useContributions";
 export {
   useWorkflows,
   useWorkflowRuns,
   useDispatchWorkflow,
   useCancelRun,
 } from "./useWorkflows";
-export { useContributions } from "./useContributions";

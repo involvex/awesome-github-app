@@ -18,6 +18,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
+type MyRepo = NonNullable<
+  ReturnType<typeof useMyRepos>["data"]
+>["pages"][number][number];
+
 const FILTERS: { label: string; value: RepoFilter }[] = [
   { label: "Owner", value: "owner" },
   { label: "All", value: "all" },
@@ -26,7 +30,7 @@ const FILTERS: { label: string; value: RepoFilter }[] = [
   { label: "Forked", value: "forks" },
 ];
 
-function RepoCard({ item }: { item: any }) {
+function RepoCard({ item }: { item: MyRepo }) {
   const theme = useAppTheme();
   const router = useRouter();
   return (
@@ -101,7 +105,7 @@ export default function ReposScreen() {
     useMyRepos(filter, "updated");
   const allRepos = data?.pages.flat() ?? [];
   const filtered = search
-    ? allRepos.filter((r: any) =>
+    ? allRepos.filter((r: MyRepo) =>
         r.name.toLowerCase().includes(search.toLowerCase()),
       )
     : allRepos;

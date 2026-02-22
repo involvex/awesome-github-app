@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
+import type { ContributionDay, ContributionWeek } from "../../../lib/api/hooks";
 import { useContributions } from "../../../lib/api/hooks";
 import { useAuth } from "../../../contexts/AuthContext";
 import { Avatar } from "../../../components/ui/Avatar";
@@ -36,12 +37,12 @@ function ContributionGraph({ username }: { username: string }) {
         showsHorizontalScrollIndicator={false}
       >
         <View style={cgStyles.graph}>
-          {data.map((week: any, wi: number) => (
+          {data.map((week: ContributionWeek, wi: number) => (
             <View
               key={wi}
               style={cgStyles.week}
             >
-              {week.contributionDays.map((day: any, di: number) => (
+              {week.contributionDays.map((day: ContributionDay, di: number) => (
                 <View
                   key={di}
                   style={[
