@@ -1,6 +1,6 @@
-import { View, Animated } from "react-native";
 import { ThemedText } from "./ThemedText";
 import React, { useEffect } from "react";
+import { Animated } from "react-native";
 
 type ToastProps = {
   message: string;

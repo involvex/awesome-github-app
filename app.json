@@ -11,7 +11,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "plugins": ["expo-router", "expo-font", "expo-font"],
+    "scheme": "awesomegithubapp",
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-image",
+      "expo-secure-store"
+    ],
     "android": {
       "package": "com.involvex.awesomegithubapp",
       "adaptiveIcon": {
@@ -22,11 +29,11 @@
     "web": {
       "output": "static",
       "favicon": "./assets/icon.png"
-    }
-  },
-  "extra": {
-    "oauth": {
-      "githubClientId": "tobeadded"
+    },
+    "extra": {
+      "oauth": {
+        "githubClientId": "Ov23liKNCY2M0k4TqVQ0"
+      }
     }
   }
 }

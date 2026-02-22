@@ -4,7 +4,6 @@ import { useColorScheme } from "react-native";
 
 type ThemeMode = "light" | "dark" | "system";
 type ColorScheme = "light" | "dark";
-type ColorSchemeName = ColorScheme | null | undefined;
 
 const THEME_STORAGE_KEY = "@app_theme_mode";
 

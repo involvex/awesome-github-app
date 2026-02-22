@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { useAppTheme } from "../lib/theme";
