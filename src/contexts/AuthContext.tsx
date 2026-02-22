@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     path: "oauth/callback",
   });
 
-  const [_request, response, promptAsync] = AuthSession.useAuthRequest(
+  const [, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId,
       scopes: ["read:user", "user:email", "repo", "notifications", "workflow"],

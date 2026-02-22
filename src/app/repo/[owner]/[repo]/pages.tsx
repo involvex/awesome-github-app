@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import { SettingsRow } from "../../../../components/ui/SettingsRow";
-import { useRepo, useUpdateRepo } from "../../../../lib/api/hooks";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Section } from "../../../../components/ui/Section";
+import { useRepo } from "../../../../lib/api/hooks";
 import { useAppTheme } from "../../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -24,7 +24,6 @@ export default function PagesScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { data } = useRepo(owner!, repo!);
-  const { mutate: updateRepo } = useUpdateRepo(owner!, repo!);
 
   const hasPages = !!(data as any)?.has_pages;
   const pagesUrl = `https://${owner}.github.io/${repo}/`;
