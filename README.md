@@ -88,26 +88,33 @@ bun install
 ### 2. Create a GitHub OAuth App
 
 1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
-2. Set **Authorization callback URL** to both (one per line):
+2. Set **Homepage URL** to: `http://localhost:8081` (for local web development)
+3. Set **Authorization callback URL** to all three (one per line):
    ```
    https://auth.expo.io/@involvex/awesome-github-app
    awesomegithubapp://oauth/callback
+   http://localhost:8081/oauth/callback
    ```
-3. Copy your **Client ID**
+4. Copy your **Client ID** and **Client Secret**
+5. Create a **second** OAuth App for web-only deployment (or use the same app with localhost URL)
 
-### 3. Configure credentials
+### 2.1. Configure OAuth Credentials
 
-In `app.json`, replace the `githubClientId` value:
+For development, update `app.json` with your GitHub OAuth credentials:
 
 ```json
 "extra": {
   "oauth": {
-    "githubClientId": "YOUR_CLIENT_ID_HERE"
+    "githubClientId": "YOUR_NATIVE_CLIENT_ID",
+    "webGithubClientId": "YOUR_WEB_CLIENT_ID",
+    "webGithubClientSecret": "YOUR_WEB_CLIENT_SECRET"
   }
 }
 ```
 
-### 4. Run
+**Important:** Never commit `webGithubClientSecret` to a public repository. Use environment variables in production.
+
+### 3. Run
 
 ```bash
 bun run start          # Expo dev server (scan with Expo Go)
