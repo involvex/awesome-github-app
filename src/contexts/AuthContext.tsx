@@ -3,7 +3,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { setToken, clearToken, getOctokit } from "../lib/api/github";
-import * as SecureStore from "expo-secure-store";
+import { getItem, setItem, deleteItem } from "../lib/storage";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isWeb = Platform.OS === "web" && !!webClientId;
   const clientId = isWeb ? webClientId : nativeClientId;
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: "awesomegithubapp",
-    path: "oauth/callback",
-  });
+  const redirectUri = AuthSession.makeRedirectUri(
+    Platform.OS === "web"
+      ? { path: "oauth/callback" }
+      : { native: "awesomegithubapp://oauth/callback" },
+  );
 
   const [, response, promptAsync] = AuthSession.useAuthRequest(
     {
@@ -74,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const userJson = await SecureStore.getItemAsync(USER_STORAGE_KEY);
-        const token = await SecureStore.getItemAsync(GITHUB_TOKEN_KEY);
+        const userJson = await getItem(USER_STORAGE_KEY);
+        const token = await getItem(GITHUB_TOKEN_KEY);
         if (userJson && token) {
           setUser(JSON.parse(userJson));
         }
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       html_url: data.html_url,
     };
     setUser(profile);
-    await SecureStore.setItemAsync(USER_STORAGE_KEY, JSON.stringify(profile));
+    await setItem(USER_STORAGE_KEY, JSON.stringify(profile));
   };
 
   const signIn = async () => {
@@ -159,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await clearToken();
-      await SecureStore.deleteItemAsync(USER_STORAGE_KEY);
+      await deleteItem(USER_STORAGE_KEY);
       setUser(null);
     } finally {
       setIsLoading(false);

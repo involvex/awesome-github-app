@@ -1,22 +1,32 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../components/ui/Button";
+import { Ionicons } from "@expo/vector-icons";
 import { Card } from "../components/ui/Card";
 import { useAppTheme } from "../lib/theme";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Card>
         <Text style={[styles.title, { color: theme.text }]}>
           awesome-github-app
         </Text>
-        <Text style={[styles.description, { color: theme.subtle }]}>
-          A modern Expo app created with create-magic-expo-app
-        </Text>
+        <View style={styles.hero}>
+          <Ionicons
+            name="logo-github"
+            size={80}
+            color={theme.text}
+          />
+          <Text style={[styles.subtitle, { color: theme.subtle }]}>
+            A modern GitHub client, built for developers.
+          </Text>
+        </View>
         <Button
-          title="Start building"
-          onPress={() => console.log("Ready to build")}
+          title="Go to Login page"
+          onPress={() => router.push("/login")}
         />
       </Card>
     </View>
@@ -26,33 +36,29 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 24,
+    justifyContent: "space-between",
+    padding: 32,
+    paddingBottom: 48,
   },
-  card: {
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    gap: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  description: {
+  hero: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16 },
+  title: { fontSize: 32, fontWeight: "800", letterSpacing: -1 },
+  subtitle: {
     fontSize: 16,
+    textAlign: "center",
     lineHeight: 24,
+    maxWidth: 280,
   },
   button: {
-    marginTop: 8,
-    borderRadius: 12,
-    backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: "#1f2328",
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonIcon: {},
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  legal: { textAlign: "center", fontSize: 12, marginTop: 16 },
 });
