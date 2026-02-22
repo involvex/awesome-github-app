@@ -4,7 +4,7 @@ const features = [
   "Expo Router navigation",
   "Local Android build workflow",
   "Adaptive light/dark theme",
-  "Reusable UI components"
+  "Reusable UI components",
 ];
 
 export default function FeaturesScreen() {
@@ -12,7 +12,12 @@ export default function FeaturesScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Template Features</Text>
       {features.map(feature => (
-        <Text key={feature} style={styles.item}>â¢ {feature}</Text>
+        <Text
+          key={feature}
+          style={styles.item}
+        >
+          â¢ {feature}
+        </Text>
       ))}
     </View>
   );

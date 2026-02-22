@@ -1,6 +1,6 @@
 # awesome-github-app
 
-Generated with `create-magic-expo-app` using the **showcase** template.
+An Awesome Github App, an alternative to the official Github App.
 
 ## Scripts
 
@@ -9,6 +9,7 @@ Generated with `create-magic-expo-app` using the **showcase** template.
 - `bun run ios` - Local iOS build/run
 - `bun run web` - Web preview
 - `bun run build:local` - Local-first production build path
+- `bun run prebuild`- lint, format, typecheck
 
 ## Notes
 

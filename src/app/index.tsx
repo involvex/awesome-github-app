@@ -1,16 +1,23 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useAppTheme } from "../lib/theme";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
+import { useAppTheme } from "../lib/theme";
 
 export default function HomeScreen() {
   const theme = useAppTheme();
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Card>
-        <Text style={[styles.title, { color: theme.text }]}>awesome-github-app</Text>
-        <Text style={[styles.description, { color: theme.subtle }]}>A modern Expo app created with create-magic-expo-app</Text>
-        <Button title="Start building" onPress={() => console.log("Ready to build")} />
+        <Text style={[styles.title, { color: theme.text }]}>
+          awesome-github-app
+        </Text>
+        <Text style={[styles.description, { color: theme.subtle }]}>
+          A modern Expo app created with create-magic-expo-app
+        </Text>
+        <Button
+          title="Start building"
+          onPress={() => console.log("Ready to build")}
+        />
       </Card>
     </View>
   );

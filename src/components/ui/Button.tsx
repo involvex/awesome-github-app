@@ -7,7 +7,10 @@ export interface ButtonProps extends PressableProps {
 
 export function Button({ title, ...props }: ButtonProps) {
   return (
-    <Pressable {...props} style={[styles.button, props.style]}>
+    <Pressable
+      {...props}
+      style={[styles.button, props.style]}
+    >
       <Text style={styles.text}>{title}</Text>
     </Pressable>
   );

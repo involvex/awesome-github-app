@@ -10,7 +10,10 @@ export default function ComponentsScreen() {
         <Text style={styles.body}>
           These starter components are generated from the template package.
         </Text>
-        <Button title="Primary action" onPress={() => console.log("Pressed")} />
+        <Button
+          title="Primary action"
+          onPress={() => console.log("Pressed")}
+        />
       </Card>
     </View>
   );
