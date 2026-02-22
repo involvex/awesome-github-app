@@ -23,7 +23,8 @@ export default {
     }
 
     try {
-      const { code, redirect_uri, client_id } = await request.json();
+      const { code, redirect_uri, client_id, code_verifier } =
+        await request.json();
       const workerClientId = env.GITHUB_CLIENT_ID_WEB ?? env.GITHUB_CLIENT_ID;
       const workerClientSecret =
         env.GITHUB_CLIENT_SECRET_WEB ?? env.GITHUB_CLIENT_SECRET;
@@ -65,6 +66,7 @@ export default {
             client_id: workerClientId,
             client_secret: workerClientSecret,
             code,
+            ...(code_verifier ? { code_verifier } : {}),
             redirect_uri,
           }),
         },

@@ -57,17 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isWeb = Platform.OS === "web";
   const clientId = isWeb ? webClientId : nativeClientId;
 
-  const redirectUri = AuthSession.makeRedirectUri(
-    Platform.OS === "web"
-      ? { path: "oauth/callback" }
-      : { native: "awesomegithubapp://oauth/callback" },
-  );
+  const redirectUri = isWeb
+    ? AuthSession.makeRedirectUri({ path: "oauth/callback" })
+    : "awesomegithubapp://oauth/callback";
 
-  const [, response, promptAsync] = AuthSession.useAuthRequest(
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId,
       scopes: ["read:user", "user:email", "repo", "notifications", "workflow"],
       redirectUri,
+      usePKCE: true,
     },
     discovery,
   );
@@ -93,11 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (response?.type === "success") {
       const { code } = response.params;
-      exchangeCodeForToken(code);
+      exchangeCodeForToken(code, request?.codeVerifier);
     }
-  }, [response]);
+  }, [request?.codeVerifier, response]);
 
-  const exchangeCodeForToken = async (code: string) => {
+  const exchangeCodeForToken = async (code: string, codeVerifier?: string) => {
     setIsLoading(true);
     let tokenUrl = "https://github.com/login/oauth/access_token";
     try {
@@ -114,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // On web, the Cloudflare Worker handles client_secret
           ...(isWeb ? {} : {}),
           code,
+          code_verifier: codeVerifier,
           redirect_uri: redirectUri,
         }),
       });
@@ -143,6 +143,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clientId,
         "tokenUrl:",
         tokenUrl,
+        "hasCodeVerifier:",
+        !!codeVerifier,
         "redirectUri:",
         redirectUri,
       );
@@ -180,6 +182,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       return;
     }
+    console.info("Starting OAuth sign-in", {
+      platform: Platform.OS,
+      clientId,
+      redirectUri,
+    });
     await promptAsync();
   };
 

@@ -57,6 +57,7 @@ Exchange an OAuth code for an access token.
 ```json
 {
   "code": "github_oauth_code",
+  "code_verifier": "pkce_code_verifier",
   "redirect_uri": "http://localhost:8081/oauth/callback"
 }
 ```
