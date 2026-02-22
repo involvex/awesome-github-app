@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import "uniwind";
+
+/* Custom Magic Expo theme variables */
+:root {
+  --color-primary: #007aff;
+  --color-secondary: #5856d6;
+  --color-accent: #ff9500;
+  --color-background: #ffffff;
+  --color-card: #f2f2f7;
+  --color-text: #000000;
+  --color-text-secondary: #8e8e93;
+  --color-border: #c6c6c8;
+}
+
+.dark {
+  --color-primary: #0a84ff;
+  --color-secondary: #5e5ce6;
+  --color-accent: #ff9f0a;
+  --color-background: #000000;
+  --color-card: #1c1c1e;
+  --color-text: #ffffff;
+  --color-text-secondary: #8e8e93;
+  --color-border: #38383a;
+}
+
+@layer utilities {
+  .bg-background {
+    background-color: var(--color-background);
+  }
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+  .bg-card {
+    background-color: var(--color-card);
+  }
+  .text-primary {
+    color: var(--color-primary);
+  }
+  .text-secondary {
+    color: var(--color-text-secondary);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+}

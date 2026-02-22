@@ -6,9 +6,27 @@
     "version": "0.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "plugins": ["expo-router"],
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "plugins": ["expo-router", "expo-font", "expo-font"],
     "android": {
-      "package": "com.involvex.awesomegithubapp"
+      "package": "com.involvex.awesomegithubapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/icon.png"
+    }
+  },
+  "extra": {
+    "oauth": {
+      "githubClientId": "tobeadded"
     }
   }
 }
