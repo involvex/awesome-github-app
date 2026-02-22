@@ -105,6 +105,7 @@ For development, update `app.json` with your GitHub OAuth Client IDs:
 "extra": {
   "oauth": {
     "githubClientId": "YOUR_NATIVE_CLIENT_ID",
+    "expoGoGithubClientId": "YOUR_EXPO_GO_CLIENT_ID_OPTIONAL",
     "webGithubClientId": "YOUR_WEB_CLIENT_ID",
     "webTokenExchangeUrl": "https://awesomegithubapp-api.involvex.workers.dev/token"
   }
@@ -115,6 +116,7 @@ Use separate OAuth apps per platform:
 
 - Native OAuth app callback: `awesomegithubapp://oauth/callback`
 - Web OAuth app callback: `http://localhost:8081/oauth/callback`
+- Optional Expo Go OAuth app callback: `https://auth.expo.io/@involvex/awesome-github-app/oauth/callback`
 
 ### 2.2. Set Up Cloudflare Worker for Web OAuth
 
@@ -169,7 +171,7 @@ bun run ios            # Build + run on iOS simulator
 bun run web            # Web preview
 ```
 
-For native OAuth with `awesomegithubapp://oauth/callback`, use a development build (`bun run android` / `bun run ios`) instead of Expo Go.
+For native OAuth with `awesomegithubapp://oauth/callback`, use a development build (`bun run android` / `bun run ios`) instead of Expo Go. If you must use Expo Go, configure a separate OAuth app with callback `https://auth.expo.io/@involvex/awesome-github-app/oauth/callback` and set `GITHUB_CLIENT_ID_EXPO_GO`.
 
 ---
 

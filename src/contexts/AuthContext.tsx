@@ -9,10 +9,10 @@ import React, {
   useState,
 } from "react";
 import { setToken, clearToken, getOctokit } from "../lib/api/github";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { getItem, setItem, deleteItem } from "../lib/storage";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
-import Constants from "expo-constants";
 
 export interface GitHubUser {
   id: number;
@@ -55,18 +55,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const nativeClientId =
     Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
+  const expoGoClientId =
+    Constants.expoConfig?.extra?.oauth?.expoGoGithubClientId ?? "";
   const webClientId =
     Constants.expoConfig?.extra?.oauth?.webGithubClientId ?? "";
   const webTokenExchangeUrl =
     Constants.expoConfig?.extra?.oauth?.webTokenExchangeUrl ??
     "https://awesomegithubapp-api.involvex.workers.dev/token";
   const isWeb = Platform.OS === "web";
-  const clientId = isWeb ? webClientId : nativeClientId;
+  const isExpoGoNative =
+    !isWeb &&
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const nativeRedirectUri = isExpoGoNative
+    ? AuthSession.getRedirectUrl("oauth/callback")
+    : "awesomegithubapp://oauth/callback";
+  const clientId = isWeb
+    ? webClientId
+    : isExpoGoNative
+      ? expoGoClientId
+      : nativeClientId;
   const codeVerifierRef = useRef<string | undefined>(undefined);
 
   const redirectUri = isWeb
     ? AuthSession.makeRedirectUri({ path: "oauth/callback" })
-    : "awesomegithubapp://oauth/callback";
+    : nativeRedirectUri;
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
@@ -85,12 +97,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [request?.codeVerifier]);
 
   useEffect(() => {
+    if (isExpoGoNative && !expoGoClientId) {
+      console.warn(
+        "Expo Go requires a dedicated OAuth app client ID (extra.oauth.expoGoGithubClientId).",
+      );
+    }
     if (!isWeb && webClientId && nativeClientId === webClientId) {
       console.warn(
         "Native and web OAuth client IDs are identical. Ensure native uses the native OAuth app client ID.",
       );
     }
-  }, [isWeb, nativeClientId, webClientId]);
+  }, [expoGoClientId, isExpoGoNative, isWeb, nativeClientId, webClientId]);
 
   // Load persisted user on mount
   useEffect(() => {
@@ -209,10 +226,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error(
         `Missing OAuth client ID for ${isWeb ? "web" : "native"} platform`,
       );
+      if (isExpoGoNative) {
+        console.error(
+          "Set extra.oauth.expoGoGithubClientId and register this callback URL in that OAuth app:",
+          nativeRedirectUri,
+        );
+      }
       return;
     }
     console.info("Starting OAuth sign-in", {
       platform: Platform.OS,
+      executionEnvironment: Constants.executionEnvironment,
+      isExpoGoNative,
       clientId,
       redirectUri,
     });

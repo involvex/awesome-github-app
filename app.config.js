@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /** @param {import("expo/config").ConfigContext} param0 */
 module.exports = ({ config }) => {
@@ -18,6 +18,10 @@ module.exports = ({ config }) => {
           process.env.GITHUB_CLIENT_ID_NATIVE ??
           process.env.GITHUB_CLIENT_ID ??
           oauthConfig.githubClientId ??
+          "",
+        expoGoGithubClientId:
+          process.env.GITHUB_CLIENT_ID_EXPO_GO ??
+          oauthConfig.expoGoGithubClientId ??
           "",
         // Web-only OAuth app — separate GitHub OAuth App with localhost callback
         webGithubClientId:

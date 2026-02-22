@@ -33,8 +33,13 @@
     "extra": {
       "oauth": {
         "githubClientId": "Ov23liKNCY2M0k4TqVQ0",
+        "expoGoGithubClientId": "",
         "webGithubClientId": "Ov23lif9XwyUQpykNqpp",
         "webTokenExchangeUrl": "https://awesomegithubapp-api.involvex.workers.dev/token"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "1b86eee4-ea8a-4928-a057-ae6c89ceb450"
       }
     }
   }
