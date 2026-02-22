@@ -1,6 +1,10 @@
 // @ts-check
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require("./app.json");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 /** @type {import("expo/config").ExpoConfig} */
 module.exports = {
@@ -11,8 +15,9 @@ module.exports = {
       githubClientId:
         process.env.GITHUB_CLIENT_ID ?? appJson.expo.extra.oauth.githubClientId,
       // Web-only OAuth app — separate GitHub OAuth App with localhost callback
-      webGithubClientId: process.env.GITHUB_CLIENT_ID_WEB ?? "",
-      webGithubClientSecret: process.env.GITHUB_CLIENT_SECRET_WEB ?? "",
+      webGithubClientId: dotenv.config().parsed?.GITHUB_CLIENT_ID_WEB ?? "",
+      webGithubClientSecret:
+        dotenv.config().parsed?.GITHUB_CLIENT_SECRET_WEB ?? "",
     },
   },
 };

@@ -99,25 +99,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const exchangeCodeForToken = async (code: string) => {
     setIsLoading(true);
     try {
-      // Exchange code for token via GitHub's token endpoint
-      const tokenRes = await fetch(
-        "https://github.com/login/oauth/access_token",
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            client_id: clientId,
-            ...(isWeb && webClientSecret
-              ? { client_secret: webClientSecret }
-              : {}),
-            code,
-            redirect_uri: redirectUri,
-          }),
+      // On web, proxy through local API route to avoid CORS.
+      // On native, call GitHub directly (no CORS restrictions in native fetch).
+      const tokenUrl = isWeb
+        ? "/api/github-token"
+        : "https://github.com/login/oauth/access_token";
+
+      const tokenRes = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          client_id: clientId,
+          ...(isWeb && webClientSecret
+            ? { client_secret: webClientSecret }
+            : {}),
+          code,
+          redirect_uri: redirectUri,
+        }),
+      });
       const tokenData = await tokenRes.json();
       if (!tokenData.access_token) throw new Error("No access token returned");
 
