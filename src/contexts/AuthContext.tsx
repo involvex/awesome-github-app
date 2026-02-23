@@ -49,6 +49,15 @@ const discovery = {
   revocationEndpoint: "https://github.com/settings/connections/applications",
 };
 
+const buildExpoProxyStartUrl = (
+  authUrl: string,
+  returnUrl: string,
+  projectFullName: string,
+) => {
+  const query = new URLSearchParams({ authUrl, returnUrl });
+  return `https://auth.expo.io/${projectFullName}/start?${query.toString()}`;
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,12 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const webTokenExchangeUrl =
     Constants.expoConfig?.extra?.oauth?.webTokenExchangeUrl ??
     "https://awesomegithubapp-api.involvex.workers.dev/token";
+  const expoOwner = Constants.expoConfig?.owner;
+  const expoSlug = Constants.expoConfig?.slug;
+  const expoProjectFullName =
+    expoOwner && expoSlug ? `@${expoOwner}/${expoSlug}` : "";
+  const expoGoRedirectUri = expoProjectFullName
+    ? `https://auth.expo.io/${expoProjectFullName}`
+    : AuthSession.makeRedirectUri({ path: "oauth/callback" });
   const isWeb = Platform.OS === "web";
   const isExpoGoNative =
     !isWeb &&
     Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  const expoGoReturnUrl = AuthSession.makeRedirectUri({
+    path: "oauth/callback",
+  });
   const nativeRedirectUri = isExpoGoNative
-    ? AuthSession.getRedirectUrl("oauth/callback")
+    ? expoGoRedirectUri
     : "awesomegithubapp://oauth/callback";
   const clientId = isWeb
     ? webClientId
@@ -97,6 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [request?.codeVerifier]);
 
   useEffect(() => {
+    if (isExpoGoNative && !expoProjectFullName) {
+      console.warn(
+        "Expo Go OAuth proxy requires expo.owner and expo.slug in app config.",
+      );
+    }
     if (isExpoGoNative && !expoGoClientId) {
       console.warn(
         "Expo Go requires a dedicated OAuth app client ID (extra.oauth.expoGoGithubClientId).",
@@ -107,7 +131,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "Native and web OAuth client IDs are identical. Ensure native uses the native OAuth app client ID.",
       );
     }
-  }, [expoGoClientId, isExpoGoNative, isWeb, nativeClientId, webClientId]);
+  }, [
+    expoGoClientId,
+    expoProjectFullName,
+    isExpoGoNative,
+    isWeb,
+    nativeClientId,
+    webClientId,
+  ]);
 
   // Load persisted user on mount
   useEffect(() => {
@@ -222,6 +253,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async () => {
+    if (!request) {
+      console.error("OAuth request is not ready yet.");
+      return;
+    }
     if (!clientId) {
       console.error(
         `Missing OAuth client ID for ${isWeb ? "web" : "native"} platform`,
@@ -234,14 +269,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return;
     }
+    const promptUrl =
+      isExpoGoNative && expoProjectFullName && request.url
+        ? buildExpoProxyStartUrl(
+            request.url,
+            expoGoReturnUrl,
+            expoProjectFullName,
+          )
+        : undefined;
     console.info("Starting OAuth sign-in", {
       platform: Platform.OS,
       executionEnvironment: Constants.executionEnvironment,
       isExpoGoNative,
       clientId,
       redirectUri,
+      expoGoReturnUrl,
+      usesExpoProxyStartUrl: !!promptUrl,
     });
-    await promptAsync();
+    await promptAsync(promptUrl ? { url: promptUrl } : undefined);
   };
 
   const signOut = async () => {
