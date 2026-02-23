@@ -72,9 +72,16 @@ jest.mock("expo-router", () => {
   };
 });
 
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: () => null,
+}));
+
 jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock"),
 );
+
+const { notifyManager } = require("@tanstack/query-core");
+notifyManager.setBatchNotifyFunction(fn => fn());
 
 if (typeof window === "undefined") {
   global.window = global;
@@ -91,6 +98,23 @@ if (!global.navigator) {
 }
 
 global.__DEV__ = true;
+
+const originalError = console.error;
+beforeAll(() => {
+  jest.spyOn(console, "error").mockImplementation((...args) => {
+    if (
+      typeof args[0] === "string" &&
+      args[0].includes("not wrapped in act(")
+    ) {
+      return;
+    }
+    originalError(...args);
+  });
+});
+
+afterAll(() => {
+  console.error.mockRestore();
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
