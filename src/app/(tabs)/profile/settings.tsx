@@ -26,6 +26,11 @@ export default function SettingsScreen() {
   const { themeMode, setThemeMode } = useTheme();
   const { preferences, updatePreference } = usePreferences();
 
+  const handleThemeChange = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    updatePreference("themeMode", mode);
+  };
+
   const handleSignOut = () => {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -85,7 +90,7 @@ export default function SettingsScreen() {
           <SegmentedControl
             options={themeOptions}
             value={themeMode}
-            onChange={setThemeMode}
+            onChange={handleThemeChange}
             size="md"
             fullWidth
           />

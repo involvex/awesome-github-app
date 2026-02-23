@@ -155,9 +155,19 @@ export default function TrendingScreen() {
           )}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              No results for this combination.
-            </Text>
+            <View style={styles.emptyState}>
+              <Ionicons
+                name="trending-up"
+                size={24}
+                color={theme.muted}
+              />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                No results found
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+                Try another language or time range.
+              </Text>
+            </View>
           }
         />
       )}
@@ -178,17 +188,24 @@ const styles = StyleSheet.create({
   },
   back: { padding: 4 },
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "800" },
-  list: { padding: 12, gap: 10 },
+  list: { padding: 16, gap: 12 },
   card: {
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    gap: 8,
+    gap: 10,
   },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   rank: { fontSize: 13, fontWeight: "700", minWidth: 24 },
   fullName: { flex: 1, fontSize: 14, fontWeight: "700" },
   desc: { fontSize: 13, lineHeight: 18 },
   cardFooter: { flexDirection: "row", gap: 12, alignItems: "center" },
-  empty: { textAlign: "center", marginTop: 80, fontSize: 15 },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    gap: 6,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "700" },
+  emptySubtitle: { fontSize: 14, textAlign: "center" },
 });

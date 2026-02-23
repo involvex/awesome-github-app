@@ -96,7 +96,22 @@ export default function DevelopersScreen() {
               />
             </Pressable>
           )}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons
+                name="people-circle-outline"
+                size={26}
+                color={theme.muted}
+              />
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                No developers found
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+                Try a different language.
+              </Text>
+            </View>
+          }
         />
       )}
     </View>
@@ -117,6 +132,7 @@ const styles = StyleSheet.create({
   back: { padding: 4 },
   title: { flex: 1, fontSize: 22, fontWeight: "800" },
   loader: { flex: 1 },
+  list: { padding: 12, paddingBottom: 40, gap: 8 },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -127,4 +143,12 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   login: { fontSize: 15, fontWeight: "600" },
   type: { fontSize: 12 },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    gap: 6,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "700" },
+  emptySubtitle: { fontSize: 14, textAlign: "center" },
 });

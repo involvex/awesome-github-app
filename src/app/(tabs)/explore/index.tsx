@@ -9,14 +9,14 @@ import {
   View,
 } from "react-native";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import type { SearchRepoItem } from "../../../lib/api/hooks";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
+import { useEffect, useMemo, useState } from "react";
 import { useSearch } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 
 const QUICK_TOPICS = [
   { label: "🤖 AI & ML", query: "topic:machine-learning stars:>500" },
@@ -69,13 +69,27 @@ function RepoRow({ item }: { item: SearchRepoItem }) {
 export default function ExploreScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string | string[] }>();
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const { data, isLoading } = useSearch(activeQuery, "repositories");
 
+  const incomingQuery = useMemo(() => {
+    if (!params.q) return "";
+    return Array.isArray(params.q) ? params.q[0] : params.q;
+  }, [params.q]);
+
+  useEffect(() => {
+    if (incomingQuery) {
+      setQuery(incomingQuery);
+      setActiveQuery(incomingQuery);
+    }
+  }, [incomingQuery]);
+
   const handleSearch = (text: string) => {
     setQuery(text);
-    if (text.length >= 2) setActiveQuery(text);
+    const trimmed = text.trim();
+    if (trimmed.length >= 1) setActiveQuery(trimmed);
     else setActiveQuery("");
   };
 
@@ -125,6 +139,26 @@ export default function ExploreScreen() {
             data={data as SearchRepoItem[]}
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => <RepoRow item={item} />}
+            contentContainerStyle={
+              (data as SearchRepoItem[] | undefined)?.length === 0
+                ? styles.listEmptyContainer
+                : undefined
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons
+                  name="search"
+                  size={24}
+                  color={theme.muted}
+                />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                  No matches found
+                </Text>
+                <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+                  Try another topic or keyword.
+                </Text>
+              </View>
+            }
           />
         )
       ) : (
@@ -279,4 +313,22 @@ const styles = StyleSheet.create({
   repoName: { fontSize: 14, fontWeight: "600" },
   repoDesc: { fontSize: 13, lineHeight: 18 },
   repoMeta: { flexDirection: "row", gap: 12, alignItems: "center" },
+  listEmptyContainer: {
+    flexGrow: 1,
+    padding: 24,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 32,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

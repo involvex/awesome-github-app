@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "../../src/contexts/ThemeContext";
 import { render } from "@testing-library/react-native";
 import type { ReactElement } from "react";
 
@@ -13,6 +14,8 @@ export function renderWithProviders(
   { queryClient = createQueryClient() } = {},
 ) {
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </QueryClientProvider>,
   );
 }

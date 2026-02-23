@@ -27,7 +27,7 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
   if (!data) return null;
 
   return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
+    <View style={styles.tabContent}>
       {data.description && (
         <Text style={[styles.description, { color: theme.text }]}>
           {data.description}
@@ -116,7 +116,7 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
           </View>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
