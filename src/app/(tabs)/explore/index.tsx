@@ -11,8 +11,10 @@ import {
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { SearchRepoItem } from "../../../lib/api/hooks";
+import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
+import { useFavorites } from "../../../lib/favorites";
 import { useEffect, useMemo, useState } from "react";
 import { useSearch } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
@@ -73,6 +75,12 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const { data, isLoading } = useSearch(activeQuery, "repositories");
+  const {
+    favorites,
+    removeFavorite,
+    isLoading: isFavoritesLoading,
+  } = useFavorites();
+  const { showToast } = useToast();
 
   const incomingQuery = useMemo(() => {
     if (!params.q) return "";
@@ -251,6 +259,71 @@ export default function ExploreScreen() {
               </Pressable>
             ))}
           </View>
+
+          <View style={styles.favHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Favorites
+            </Text>
+            {!isFavoritesLoading && favorites.length > 0 && (
+              <Text style={[styles.favCount, { color: theme.subtle }]}>
+                {favorites.length}
+              </Text>
+            )}
+          </View>
+          {isFavoritesLoading ? (
+            <ActivityIndicator
+              style={{ marginTop: 4 }}
+              color={theme.primary}
+            />
+          ) : favorites.length === 0 ? (
+            <View style={styles.emptyFavorites}>
+              <Ionicons
+                name="heart-outline"
+                size={16}
+                color={theme.muted}
+              />
+              <Text style={[styles.emptyFavText, { color: theme.subtle }]}>
+                Save trending topics or languages to see them here.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.favGrid}>
+              {favorites.map(fav => (
+                <Pressable
+                  key={fav.id}
+                  style={[
+                    styles.favChip,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  onPress={() => handleSearch(fav.query)}
+                >
+                  <Text style={[styles.favChipText, { color: theme.text }]}>
+                    {fav.label}
+                  </Text>
+                  <Pressable
+                    style={styles.removeBtn}
+                    onPress={e => {
+                      e.stopPropagation?.();
+                      removeFavorite(fav.id);
+                      showToast(
+                        `${fav.label} removed from favorites`,
+                        "success",
+                      );
+                    }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={14}
+                      color={theme.muted}
+                    />
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
     </View>
@@ -303,6 +376,32 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   topicChipText: { fontSize: 14 },
+  favHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  favCount: { fontSize: 13, fontWeight: "600" },
+  favGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  favChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  favChipText: { fontSize: 14 },
+  removeBtn: { padding: 2 },
+  emptyFavorites: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+  },
+  emptyFavText: { fontSize: 13, flex: 1, flexWrap: "wrap" },
   repoRow: {
     flexDirection: "row",
     padding: 14,

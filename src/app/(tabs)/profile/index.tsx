@@ -7,8 +7,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import type { ContributionDay, ContributionWeek } from "../../../lib/api/hooks";
+import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useContributions } from "../../../lib/api/hooks";
+import { StatBar } from "../../../components/ui/StatBar";
 import { useAuth } from "../../../contexts/AuthContext";
+import { usePinnedRepos } from "../../../lib/api/hooks";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -74,6 +77,11 @@ export default function ProfileScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const { user } = useAuth();
+  const {
+    data: pinnedData,
+    isLoading: pinsLoading,
+    isError: pinsError,
+  } = usePinnedRepos();
 
   if (!user) return null;
 
@@ -187,6 +195,84 @@ export default function ProfileScreen() {
         ))}
       </View>
 
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Pinned Repositories
+          </Text>
+          {!!pinnedData?.totalCount && (
+            <Text style={[styles.sectionBadge, { color: theme.subtle }]}>
+              {pinnedData.totalCount}
+            </Text>
+          )}
+        </View>
+        {pinsLoading ? (
+          <ActivityIndicator color={theme.primary} />
+        ) : pinsError ? (
+          <View style={styles.sectionEmpty}>
+            <Ionicons
+              name="warning-outline"
+              size={16}
+              color={theme.muted}
+            />
+            <Text style={[styles.emptyText, { color: theme.subtle }]}>
+              Unable to load pinned repositories.
+            </Text>
+          </View>
+        ) : (pinnedData?.repos?.length ?? 0) === 0 ? (
+          <View style={styles.sectionEmpty}>
+            <Ionicons
+              name="bookmark-outline"
+              size={16}
+              color={theme.muted}
+            />
+            <Text style={[styles.emptyText, { color: theme.subtle }]}>
+              Pin repositories on GitHub to see them here.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.pinnedList}>
+            {pinnedData?.repos.map(repo => (
+              <Pressable
+                key={repo.id}
+                style={[
+                  styles.pinnedCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() =>
+                  router.push(`/repo/${repo.owner.login}/${repo.name}`)
+                }
+              >
+                <View style={styles.pinnedHeader}>
+                  <View style={styles.pinnedTitleRow}>
+                    <Ionicons
+                      name="bookmark"
+                      size={16}
+                      color={theme.primary}
+                    />
+                    <Text style={[styles.repoName, { color: theme.primary }]}>
+                      {repo.nameWithOwner}
+                    </Text>
+                  </View>
+                  <StatBar
+                    stars={repo.stargazerCount}
+                    forks={repo.forkCount}
+                  />
+                </View>
+                {repo.description && (
+                  <Text style={[styles.repoDesc, { color: theme.text }]}>
+                    {repo.description}
+                  </Text>
+                )}
+                <View style={styles.pinnedMeta}>
+                  <LanguageDot language={repo.primaryLanguage?.name} />
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       <ContributionGraph username={user.login} />
     </ScrollView>
   );
@@ -228,4 +314,32 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 20, fontWeight: "700" },
   statLabel: { fontSize: 12 },
+  repoName: { fontSize: 14, fontWeight: "600" },
+  repoDesc: { fontSize: 13, lineHeight: 18 },
+  section: { paddingHorizontal: 16, marginTop: 12, gap: 8 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", flex: 1 },
+  sectionBadge: { fontSize: 13, fontWeight: "600" },
+  sectionEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+  },
+  emptyText: { fontSize: 13 },
+  pinnedList: { gap: 10 },
+  pinnedCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+  pinnedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  pinnedTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  pinnedMeta: { flexDirection: "row", alignItems: "center", gap: 10 },
 });

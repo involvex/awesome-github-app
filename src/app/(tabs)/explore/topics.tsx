@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
+import { useToast } from "../../../contexts/ToastContext";
+import { useFavorites } from "../../../lib/favorites";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -106,6 +108,8 @@ export default function TopicsScreen() {
   const router = useRouter();
   const [category, setCategory] = useState("all");
   const topics = TOPICS[category] ?? TOPICS.all;
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { showToast } = useToast();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -130,26 +134,55 @@ export default function TopicsScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.grid}>
-        {topics.map(t => (
-          <Pressable
-            key={t.label}
-            style={[
-              styles.tile,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-            onPress={() => {
-              router.push({
-                pathname: "/(tabs)/explore",
-                params: { q: t.query },
-              });
-            }}
-          >
-            <Text style={styles.tileIcon}>{t.icon}</Text>
-            <Text style={[styles.tileLabel, { color: theme.text }]}>
-              {t.label}
-            </Text>
-          </Pressable>
-        ))}
+        {topics.map(t => {
+          const favoriteItem = {
+            id: `topic:${t.query}`,
+            label: t.label,
+            query: t.query,
+            type: "topic" as const,
+          };
+          const isFav = isFavorite(favoriteItem.id);
+          return (
+            <Pressable
+              key={t.label}
+              style={[
+                styles.tile,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => {
+                router.push({
+                  pathname: "/(tabs)/explore",
+                  params: { q: t.query },
+                });
+              }}
+            >
+              <Pressable
+                style={styles.heartBtn}
+                onPress={e => {
+                  e.stopPropagation?.();
+                  const wasFav = isFavorite(favoriteItem.id);
+                  toggleFavorite(favoriteItem);
+                  showToast(
+                    wasFav
+                      ? `${favoriteItem.label} removed from favorites`
+                      : `${favoriteItem.label} added to favorites`,
+                    "success",
+                  );
+                }}
+              >
+                <Ionicons
+                  name={isFav ? "heart" : "heart-outline"}
+                  size={16}
+                  color={isFav ? theme.primary : theme.text}
+                />
+              </Pressable>
+              <Text style={styles.tileIcon}>{t.icon}</Text>
+              <Text style={[styles.tileLabel, { color: theme.text }]}>
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -176,6 +209,13 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     gap: 8,
+  },
+  heartBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 4,
+    zIndex: 1,
   },
   tileIcon: { fontSize: 28 },
   tileLabel: { fontSize: 13, fontWeight: "600", textAlign: "center" },

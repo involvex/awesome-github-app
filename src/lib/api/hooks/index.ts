@@ -24,6 +24,7 @@ export {
   type ContributionDay,
   type ContributionWeek,
 } from "./useContributions";
+export { usePinnedRepos, type PinnedRepo } from "./usePinnedRepos";
 export {
   useWorkflows,
   useWorkflowRuns,
