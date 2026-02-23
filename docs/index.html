@@ -1,0 +1,816 @@
+<!doctype html>
+<html
+  lang="en"
+  class="scroll-smooth"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Awesome GitHub App - Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      :root {
+        --noise-opacity: 0.015;
+      }
+
+      .dark {
+        --noise-opacity: 0.03;
+        color-scheme: dark;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        transition:
+          background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+          color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+
+      /* Noise Overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        opacity: var(--noise-opacity);
+      }
+
+      .glow-primary {
+        box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.5);
+      }
+
+      .dark .glow-primary {
+        box-shadow: 0 0 30px -10px rgba(59, 130, 246, 0.6);
+      }
+
+      .hero-gradient {
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(59, 130, 246, 0.1) 0%,
+          transparent 70%
+        );
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+      }
+
+      .dark .glass {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(12px);
+      }
+
+      .text-gradient {
+        background: linear-gradient(
+          135deg,
+          #3b82f6 0%,
+          #2563eb 50%,
+          #1d4ed8 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .card-hover {
+        transition:
+          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 0.3s ease;
+      }
+
+      .card-hover:hover {
+        transform: translateY(-6px);
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                200: "#bfdbfe",
+                300: "#93c5fd",
+                400: "#60a5fa",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#1e3a8a",
+                950: "#172554",
+              },
+              darkBg: "#020617",
+              darkCard: "#0f172a",
+              darkBorder: "#1e293b",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="bg-slate-50 text-slate-900 transition-colors duration-500 dark:bg-darkBg dark:text-slate-200"
+  >
+    <!-- Sticky Navbar -->
+    <nav
+      class="sticky top-0 z-50 w-full border-b border-slate-200/60 glass px-4 py-4 dark:border-slate-800/60"
+    >
+      <div class="mx-auto flex max-w-6xl items-center justify-between">
+        <div class="flex items-center gap-3 group cursor-pointer">
+          <div
+            class="rounded-xl bg-primary-500 p-1.5 glow-primary transition-transform group-hover:scale-110"
+          >
+            <i
+              data-lucide="github"
+              class="h-6 w-6 text-white"
+            ></i>
+          </div>
+          <span
+            class="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
+            >Awesome GitHub</span
+          >
+        </div>
+
+        <div class="hidden items-center gap-10 md:flex">
+          <a
+            href="#install"
+            class="text-sm font-semibold text-slate-600 hover:text-primary-500 transition-colors dark:text-slate-400 dark:hover:text-white"
+            >Installation</a
+          >
+          <a
+            href="#tech"
+            class="text-sm font-semibold text-slate-600 hover:text-primary-500 transition-colors dark:text-slate-400 dark:hover:text-white"
+            >Tech Stack</a
+          >
+          <a
+            href="#support"
+            class="text-sm font-semibold text-slate-600 hover:text-primary-500 transition-colors dark:text-slate-400 dark:hover:text-white"
+            >Support</a
+          >
+          <a
+            href="https://github.com/involvex/awesome-github-app"
+            target="_blank"
+            class="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
+          >
+            GitHub
+            <i
+              data-lucide="external-link"
+              class="h-3.5 w-3.5"
+            ></i>
+          </a>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button
+            id="theme-toggle"
+            class="rounded-xl border border-slate-200 p-2.5 hover:bg-slate-100 transition-all dark:border-slate-800 dark:hover:bg-slate-800"
+            aria-label="Toggle Theme"
+          >
+            <i
+              id="theme-toggle-dark-icon"
+              data-lucide="moon"
+              class="hidden h-5 w-5 text-slate-600 dark:text-slate-400"
+            ></i>
+            <i
+              id="theme-toggle-light-icon"
+              data-lucide="sun"
+              class="hidden h-5 w-5 text-amber-400"
+            ></i>
+          </button>
+          <button
+            title="Menu"
+            class="md:hidden rounded-xl border border-slate-200 p-2.5 hover:bg-slate-100 transition-all dark:border-slate-800 dark:hover:bg-slate-800"
+          >
+            <i
+              data-lucide="menu"
+              class="h-6 w-6"
+            ></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="relative">
+      <!-- Hero Background Glow -->
+      <div class="absolute inset-0 -z-10 overflow-hidden">
+        <div
+          class="absolute -top-[10%] left-[15%] h-[500px] w-[500px] rounded-full bg-primary-500/10 blur-[120px] dark:bg-primary-500/5"
+        ></div>
+        <div
+          class="absolute top-[20%] right-[10%] h-[400px] w-[400px] rounded-full bg-indigo-500/10 blur-[100px] dark:bg-indigo-500/5"
+        ></div>
+      </div>
+
+      <div class="mx-auto max-w-5xl px-6 py-24 md:py-32">
+        <!-- Hero Section -->
+        <section class="mb-32 text-center">
+          <div
+            class="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-primary-600 dark:border-primary-900/50 dark:bg-primary-950/30 dark:text-primary-400"
+          >
+            <span
+              class="flex h-2 w-2 animate-pulse rounded-full bg-primary-500"
+            ></span>
+            Version 0.0.2 Now Available
+          </div>
+          <h1
+            class="mb-8 text-6xl font-black tracking-tight text-slate-900 md:text-8xl dark:text-white leading-[1.1]"
+          >
+            The <span class="text-gradient">Beautiful</span><br />GitHub Client
+          </h1>
+          <p
+            class="mx-auto mb-12 max-w-2xl text-xl leading-relaxed text-slate-600 dark:text-slate-400"
+          >
+            A high-performance mobile experience for developers. Track activity,
+            explore trending repos, and manage your workflows with elegance.
+          </p>
+          <div class="flex flex-wrap justify-center gap-6">
+            <a
+              href="#install"
+              class="group relative inline-flex items-center gap-3 overflow-hidden rounded-2xl bg-primary-600 px-10 py-4.5 font-bold text-white transition-all hover:bg-primary-700 hover:shadow-2xl hover:shadow-primary-500/40"
+            >
+              <i
+                data-lucide="zap"
+                class="h-5 w-5 fill-white"
+              ></i>
+              <span>Get Started</span>
+              <div
+                class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full"
+              ></div>
+            </a>
+            <a
+              href="https://github.com/involvex/awesome-github-app"
+              class="inline-flex items-center gap-3 rounded-2xl border-2 border-slate-200 px-10 py-4.5 font-bold text-slate-900 transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:text-white dark:hover:bg-slate-800/50"
+            >
+              <i
+                data-lucide="github"
+                class="h-5 w-5"
+              ></i>
+              View Source
+            </a>
+          </div>
+        </section>
+
+        <!-- Stats Section -->
+        <div class="mb-32 grid grid-cols-2 gap-6 md:grid-cols-4">
+          <div
+            class="rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard/50"
+          >
+            <div class="mb-2 text-4xl font-black text-primary-500">55</div>
+            <div
+              class="text-sm font-bold uppercase tracking-widest text-slate-500"
+            >
+              Expo SDK
+            </div>
+          </div>
+          <div
+            class="rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard/50"
+          >
+            <div class="mb-2 text-4xl font-black text-primary-500">19</div>
+            <div
+              class="text-sm font-bold uppercase tracking-widest text-slate-500"
+            >
+              React
+            </div>
+          </div>
+          <div
+            class="rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard/50"
+          >
+            <div class="mb-2 text-4xl font-black text-primary-500">60fps</div>
+            <div
+              class="text-sm font-bold uppercase tracking-widest text-slate-500"
+            >
+              Animations
+            </div>
+          </div>
+          <div
+            class="rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard/50"
+          >
+            <div class="mb-2 text-4xl font-black text-primary-500">Dark</div>
+            <div
+              class="text-sm font-bold uppercase tracking-widest text-slate-500"
+            >
+              First-Class
+            </div>
+          </div>
+        </div>
+
+        <!-- Installation Section -->
+        <section
+          id="install"
+          class="mb-32 scroll-mt-24"
+        >
+          <div class="mb-12 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500/10 text-primary-500 dark:bg-primary-500/20"
+              >
+                <i
+                  data-lucide="download"
+                  class="h-7 w-7"
+                ></i>
+              </div>
+              <h2
+                class="text-4xl font-black tracking-tight text-slate-900 dark:text-white"
+              >
+                Installation
+              </h2>
+            </div>
+          </div>
+
+          <div class="grid gap-10 md:grid-cols-2">
+            <div
+              class="card-hover group relative rounded-[32px] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
+            >
+              <div
+                class="absolute top-0 right-0 h-32 w-32 -translate-y-4 translate-x-4 rounded-full bg-primary-500/5 blur-3xl transition-opacity group-hover:opacity-100"
+              ></div>
+              <h3
+                class="mb-6 text-2xl font-black flex items-center gap-3 text-slate-900 dark:text-white"
+              >
+                <i
+                  data-lucide="smartphone"
+                  class="h-6 w-6 text-primary-500"
+                ></i>
+                For Android (APK)
+              </h3>
+              <p class="mb-8 text-lg text-slate-600 dark:text-slate-400">
+                Install the stable production build directly.
+              </p>
+              <div class="space-y-6 mb-10">
+                <div class="flex gap-4">
+                  <div
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold dark:bg-slate-800"
+                  >
+                    1
+                  </div>
+                  <p class="text-slate-600 dark:text-slate-400">
+                    Visit
+                    <a
+                      href="https://github.com/involvex/awesome-github-app/releases"
+                      class="font-bold text-primary-500 hover:underline"
+                      >Releases</a
+                    >
+                  </p>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold dark:bg-slate-800"
+                  >
+                    2
+                  </div>
+                  <p class="text-slate-600 dark:text-slate-400">
+                    Download <code>.apk</code> artifact
+                  </p>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold dark:bg-slate-800"
+                  >
+                    3
+                  </div>
+                  <p class="text-slate-600 dark:text-slate-400">
+                    Allow unknown source install
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://github.com/involvex/awesome-github-app/releases"
+                class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 py-4 font-bold text-white transition-all hover:bg-black dark:bg-primary-600 dark:hover:bg-primary-500"
+              >
+                Download Latest Release
+                <i
+                  data-lucide="arrow-right"
+                  class="h-5 w-5"
+                ></i>
+              </a>
+            </div>
+
+            <div
+              class="card-hover group relative rounded-[32px] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
+            >
+              <h3
+                class="mb-6 text-2xl font-black flex items-center gap-3 text-slate-900 dark:text-white"
+              >
+                <i
+                  data-lucide="terminal"
+                  class="h-6 w-6 text-primary-500"
+                ></i>
+                Development
+              </h3>
+              <p class="mb-8 text-lg text-slate-600 dark:text-slate-400">
+                Perfect for customizing and local development.
+              </p>
+              <div
+                class="rounded-2xl border border-slate-200 bg-slate-50 p-6 font-mono text-sm leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              >
+                <p class="mb-1">
+                  <span class="text-primary-500">git clone</span>
+                  https://github.com/involvex/awesome-github-app
+                </p>
+                <p class="mb-1">
+                  <span class="text-primary-500">cd</span> awesome-github-app
+                </p>
+                <p class="mb-1">
+                  <span class="text-primary-500">bun</span> install
+                </p>
+                <p><span class="text-primary-500">bun</span> run android</p>
+              </div>
+              <div
+                class="mt-8 flex items-center gap-2 text-sm font-medium text-slate-500 italic"
+              >
+                <i
+                  data-lucide="info"
+                  class="h-4 w-4"
+                ></i>
+                Requires Android Studio & Expo CLI
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tech Stack Section -->
+        <section
+          id="tech"
+          class="mb-32 scroll-mt-24"
+        >
+          <div class="mb-16 text-center">
+            <h2
+              class="mb-4 text-4xl font-black tracking-tight text-slate-900 dark:text-white"
+            >
+              Built for Performance
+            </h2>
+            <p
+              class="mx-auto max-w-xl text-lg text-slate-600 dark:text-slate-400"
+            >
+              Leveraging a state-of-the-art stack to deliver a native feel on
+              every device.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div
+              class="card-hover group rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard"
+            >
+              <div
+                class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 transition-colors group-hover:bg-blue-500 group-hover:text-white group-hover:glow-primary dark:bg-blue-500/10"
+              >
+                <i
+                  data-lucide="zap"
+                  class="h-8 w-8"
+                ></i>
+              </div>
+              <div class="text-xl font-black text-slate-900 dark:text-white">
+                Expo 55
+              </div>
+              <p class="mt-2 text-sm text-slate-500">Continuous Native Gen</p>
+            </div>
+            <div
+              class="card-hover group rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard"
+            >
+              <div
+                class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-500 transition-colors group-hover:bg-cyan-500 group-hover:text-white group-hover:glow-primary dark:bg-cyan-500/10"
+              >
+                <i
+                  data-lucide="atom"
+                  class="h-8 w-8"
+                ></i>
+              </div>
+              <div class="text-xl font-black text-slate-900 dark:text-white">
+                React 19
+              </div>
+              <p class="mt-2 text-sm text-slate-500">Latest Concurrent UI</p>
+            </div>
+            <div
+              class="card-hover group rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard"
+            >
+              <div
+                class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 transition-colors group-hover:bg-indigo-500 group-hover:text-white group-hover:glow-primary dark:bg-indigo-500/10"
+              >
+                <i
+                  data-lucide="palette"
+                  class="h-8 w-8"
+                ></i>
+              </div>
+              <div class="text-xl font-black text-slate-900 dark:text-white">
+                Uniwind
+              </div>
+              <p class="mt-2 text-sm text-slate-500">Utility-First Native</p>
+            </div>
+            <div
+              class="card-hover group rounded-3xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-darkCard"
+            >
+              <div
+                class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 transition-colors group-hover:bg-orange-500 group-hover:text-white group-hover:glow-primary dark:bg-orange-500/10"
+              >
+                <i
+                  data-lucide="database"
+                  class="h-8 w-8"
+                ></i>
+              </div>
+              <div class="text-xl font-black text-slate-900 dark:text-white">
+                React Query
+              </div>
+              <p class="mt-2 text-sm text-slate-500">Async State Sync</p>
+            </div>
+          </div>
+
+          <div
+            class="mt-12 overflow-hidden rounded-[32px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-darkCard"
+          >
+            <div
+              class="flex items-center gap-4 border-b border-slate-200 bg-slate-50/50 px-8 py-4 dark:border-slate-800 dark:bg-slate-800/50"
+            >
+              <div class="flex gap-1.5">
+                <div
+                  class="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-700"
+                ></div>
+                <div
+                  class="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-700"
+                ></div>
+                <div
+                  class="h-3 w-3 rounded-full bg-slate-300 dark:bg-slate-700"
+                ></div>
+              </div>
+              <span
+                class="text-xs font-bold uppercase tracking-widest text-slate-500"
+                >Architectural Details</span
+              >
+            </div>
+            <div
+              class="grid gap-0 divide-y divide-slate-100 dark:divide-slate-800 md:grid-cols-2 md:divide-y-0 md:divide-x"
+            >
+              <div class="p-8">
+                <div class="space-y-6">
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium"
+                      >Framework Core</span
+                    >
+                    <span
+                      class="rounded-lg bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                      >Expo 55 (CNG)</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium">Navigation</span>
+                    <span
+                      class="rounded-lg bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400"
+                      >Expo Router v4</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium"
+                      >Native API Access</span
+                    >
+                    <span
+                      class="rounded-lg bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"
+                      >Expo Modules</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="p-8">
+                <div class="space-y-6">
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium"
+                      >API Integration</span
+                    >
+                    <span
+                      class="rounded-lg bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
+                      >Octokit SDK</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium"
+                      >Animation Engine</span
+                    >
+                    <span
+                      class="rounded-lg bg-pink-100 px-3 py-1 text-xs font-bold text-pink-700 dark:bg-pink-900/40 dark:text-pink-400"
+                      >Reanimated 4</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium"
+                      >Secure Storage</span
+                    >
+                    <span
+                      class="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                      >Keychain/Keystore</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Support Section -->
+        <section
+          id="support"
+          class="mb-32 scroll-mt-24"
+        >
+          <div
+            class="relative overflow-hidden rounded-[48px] bg-slate-900 p-12 text-center text-white dark:bg-blue-600"
+          >
+            <div
+              class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)]"
+            ></div>
+            <div
+              class="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-white/10 blur-3xl"
+            ></div>
+
+            <div
+              class="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[32px] bg-white text-slate-900"
+            >
+              <i
+                data-lucide="heart"
+                class="h-10 w-10 text-pink-500 fill-pink-500"
+              ></i>
+            </div>
+
+            <h2 class="mb-6 text-5xl font-black tracking-tight">
+              Support Awesome GitHub
+            </h2>
+            <p class="mx-auto mb-12 max-w-xl text-xl text-white/80">
+              This app is built and maintained with love by the community. Your
+              support directly funds new features and API costs.
+            </p>
+
+            <div class="grid gap-6 md:grid-cols-3">
+              <a
+                href="https://github.com/sponsors/involvex"
+                target="_blank"
+                class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
+              >
+                <i
+                  data-lucide="github"
+                  class="mb-4 h-10 w-10"
+                ></i>
+                <span class="text-lg font-bold">GitHub Sponsors</span>
+                <span class="mt-2 text-sm text-white/60"
+                  >Subscription support</span
+                >
+              </a>
+              <a
+                href="https://buymeacoffee.com/involvex"
+                target="_blank"
+                class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
+              >
+                <i
+                  data-lucide="coffee"
+                  class="mb-4 h-10 w-10 text-amber-300"
+                ></i>
+                <span class="text-lg font-bold">Buy Me A Coffee</span>
+                <span class="mt-2 text-sm text-white/60"
+                  >One-time appreciation</span
+                >
+              </a>
+              <a
+                href="https://paypal.me/involvex"
+                target="_blank"
+                class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
+              >
+                <i
+                  data-lucide="credit-card"
+                  class="mb-4 h-10 w-10 text-blue-300"
+                ></i>
+                <span class="text-lg font-bold">PayPal</span>
+                <span class="mt-2 text-sm text-white/60"
+                  >Direct contribution</span
+                >
+              </a>
+            </div>
+
+            <div class="mt-12 text-white/40">
+              <a
+                href="https://rewards.bing.com/welcome?rh=14525F68&ref=rafsrchae&form=ML2XE3&OCID=ML2XE3&PUBL=RewardsDO&CREA=ML2XE3"
+                target="_blank"
+                class="text-sm font-medium hover:text-white transition-colors underline decoration-white/20 underline-offset-4"
+              >
+                Referral: Earn Microsoft Rewards
+              </a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="border-t border-slate-200/60 py-20 dark:border-slate-800/60">
+      <div class="mx-auto max-w-6xl px-6 text-center">
+        <div class="mb-8 flex justify-center gap-6">
+          <a
+            href="#"
+            class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            ><i
+              data-lucide="twitter"
+              class="h-6 w-6"
+            ></i
+          ></a>
+          <a
+            href="#"
+            class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            ><i
+              data-lucide="github"
+              class="h-6 w-6"
+            ></i
+          ></a>
+          <a
+            href="#"
+            class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            ><i
+              data-lucide="mail"
+              class="h-6 w-6"
+            ></i
+          ></a>
+        </div>
+        <p class="text-sm font-medium text-slate-500">
+          © 2026 involvex. Distributed under the MIT License.
+        </p>
+        <p class="mt-2 text-xs text-slate-400">
+          Not affiliated with or endorsed by GitHub Inc.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Initialize Lucide Icons
+      lucide.createIcons();
+
+      // Theme Management
+      const themeToggleBtn = document.getElementById("theme-toggle");
+      const themeToggleDarkIcon = document.getElementById(
+        "theme-toggle-dark-icon",
+      );
+      const themeToggleLightIcon = document.getElementById(
+        "theme-toggle-light-icon",
+      );
+
+      const applyTheme = theme => {
+        if (theme === "dark") {
+          document.documentElement.classList.add("dark");
+          themeToggleLightIcon.classList.remove("hidden");
+          themeToggleDarkIcon.classList.add("hidden");
+        } else {
+          document.documentElement.classList.remove("dark");
+          themeToggleDarkIcon.classList.remove("hidden");
+          themeToggleLightIcon.classList.add("hidden");
+        }
+      };
+
+      // Initial Theme Check
+      if (
+        localStorage.getItem("color-theme") === "dark" ||
+        (!("color-theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        applyTheme("dark");
+      } else {
+        applyTheme("light");
+      }
+
+      themeToggleBtn.addEventListener("click", function () {
+        if (document.documentElement.classList.contains("dark")) {
+          applyTheme("light");
+          localStorage.setItem("color-theme", "light");
+        } else {
+          applyTheme("dark");
+          localStorage.setItem("color-theme", "dark");
+        }
+      });
+
+      // Smooth Scrolling with Offset for Sticky Header
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute("href");
+          if (targetId === "#") return;
+
+          const targetElement = document.querySelector(targetId);
+          if (targetElement) {
+            const headerOffset = 100;
+            const elementPosition = targetElement.getBoundingClientRect().top;
+            const offsetPosition =
+              elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: "smooth",
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

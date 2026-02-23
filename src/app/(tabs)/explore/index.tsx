@@ -114,7 +114,7 @@ export default function ExploreScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <View style={styles.headerRow}>
-          {(activeQuery || incomingQuery) && (
+          {!!(activeQuery || incomingQuery) && (
             <Pressable
               onPress={handleBack}
               style={styles.backBtn}
