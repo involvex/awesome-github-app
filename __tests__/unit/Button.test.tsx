@@ -1,3 +1,8 @@
+import {
+  type PressableStateCallbackType,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { fireEvent, render } from "@testing-library/react-native";
 import React from "react";
 
@@ -18,9 +23,11 @@ describe("Button", () => {
   });
 
   test("accepts functional style prop", () => {
-    const styleFn = jest.fn(() => ({
-      padding: 20,
-    }));
+    const styleFn = jest.fn<StyleProp<ViewStyle>, [PressableStateCallbackType]>(
+      ({ pressed }) => ({
+        padding: pressed ? 24 : 20,
+      }),
+    );
 
     render(
       <Button
