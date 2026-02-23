@@ -82,6 +82,7 @@ export default function ProfileScreen() {
     isLoading: pinsLoading,
     isError: pinsError,
   } = usePinnedRepos();
+  const pinnedRepos = pinnedData?.repos ?? [];
 
   if (!user) return null;
 
@@ -95,13 +96,22 @@ export default function ProfileScreen() {
           <Text style={[styles.headerTitle, { color: theme.text }]}>
             Profile
           </Text>
-          <Pressable onPress={() => router.push("/(tabs)/profile/settings")}>
-            <Ionicons
-              name="settings-outline"
-              size={22}
-              color={theme.text}
-            />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.push("/(tabs)/profile/menu")}>
+              <Ionicons
+                name="star-outline"
+                size={22}
+                color={theme.text}
+              />
+            </Pressable>
+            <Pressable onPress={() => router.push("/(tabs)/profile/settings")}>
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={theme.text}
+              />
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -219,7 +229,7 @@ export default function ProfileScreen() {
               Unable to load pinned repositories.
             </Text>
           </View>
-        ) : (pinnedData?.repos?.length ?? 0) === 0 ? (
+        ) : pinnedRepos.length === 0 ? (
           <View style={styles.sectionEmpty}>
             <Ionicons
               name="bookmark-outline"
@@ -232,7 +242,7 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <View style={styles.pinnedList}>
-            {pinnedData?.repos.map(repo => (
+            {pinnedRepos.map(repo => (
               <Pressable
                 key={repo.id}
                 style={[
@@ -287,6 +297,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerRow: { flexDirection: "row", alignItems: "center" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerTitle: { fontSize: 28, fontWeight: "800", flex: 1 },
   profileCard: {
     margin: 16,

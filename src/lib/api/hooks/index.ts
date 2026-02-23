@@ -25,6 +25,7 @@ export {
   type ContributionWeek,
 } from "./useContributions";
 export { usePinnedRepos, type PinnedRepo } from "./usePinnedRepos";
+export { useStarredRepos, type StarredRepo } from "./useStarredRepos";
 export {
   useWorkflows,
   useWorkflowRuns,

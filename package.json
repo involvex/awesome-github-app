@@ -34,6 +34,10 @@
     "test": "jest --watchAll",
     "test:ci": "jest --runInBand --ci --coverage",
     "typecheck": "tsc --noEmit",
+    "version:build": "expo-version-bump",
+    "version:major": "expo-version-bump --major",
+    "version:minor": "expo-version-bump --minor",
+    "version:patch": "expo-version-bump --patch",
     "web": "expo start --web"
   },
   "jest": {
@@ -81,6 +85,7 @@
     "expo-status-bar": "~55.0.0",
     "expo-system-ui": "~55.0.0",
     "expo-vector-icons": "^10.0.1",
+    "expo-version-bump": "^1.0.2",
     "expo-web-browser": "~55.0.8",
     "jiti": "^2.6.1",
     "react": "19.2.0",

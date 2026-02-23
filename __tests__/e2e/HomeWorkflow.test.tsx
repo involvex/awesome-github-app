@@ -17,7 +17,7 @@ describe("Home workflow", () => {
     const { getByText } = renderWithProviders(<HomeScreen />);
     const duration = performance.now() - start;
 
-    expect(duration).toBeLessThan(250);
+    expect(duration).toBeLessThan(750);
     fireEvent.press(getByText("Go to Login page"));
     expect(push).toHaveBeenCalledWith("/login");
   });

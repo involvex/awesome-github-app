@@ -101,10 +101,37 @@ export default function ExploreScreen() {
     else setActiveQuery("");
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    setQuery("");
+    setActiveQuery("");
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Explore</Text>
+        <View style={styles.headerRow}>
+          {(activeQuery || incomingQuery) && (
+            <Pressable
+              onPress={handleBack}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons
+                name="arrow-back"
+                size={20}
+                color={theme.text}
+              />
+            </Pressable>
+          )}
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Explore
+          </Text>
+        </View>
         <View
           style={[
             styles.searchBar,
@@ -339,6 +366,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 10,
   },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  backBtn: { padding: 6 },
   headerTitle: { fontSize: 28, fontWeight: "800" },
   searchBar: {
     flexDirection: "row",

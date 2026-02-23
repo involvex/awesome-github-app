@@ -2,18 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { getGraphQL } from "../graphql";
 
 export interface PinnedRepo {
+  __typename: "Repository";
   id: string;
   name: string;
   nameWithOwner: string;
-  description?: string | null;
+  description: string | null;
   stargazerCount: number;
   forkCount: number;
-  primaryLanguage?: { name: string } | null;
-  owner: { login: string; avatarUrl?: string | null };
+  primaryLanguage: { name: string } | null;
+  owner: { login: string; avatarUrl: string | null };
 }
 
 export function usePinnedRepos() {
-  return useQuery({
+  return useQuery<{ totalCount: number; repos: PinnedRepo[] }>({
     queryKey: ["pinnedRepos"],
     queryFn: async () => {
       const gql = await getGraphQL();
