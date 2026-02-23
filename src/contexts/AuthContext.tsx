@@ -13,6 +13,7 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import { getItem, setItem, deleteItem } from "../lib/storage";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
+import * as Linking from "expo-linking";
 
 export interface GitHubUser {
   id: number;
@@ -94,6 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? expoGoClientId
       : nativeClientId;
   const codeVerifierRef = useRef<string | undefined>(undefined);
+  const lastHandledCodeRef = useRef<string | null>(null);
+  const waitingForExpoProxyCallbackRef = useRef(false);
+  const dismissFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const redirectUri = isWeb
     ? AuthSession.makeRedirectUri({ path: "oauth/callback" })
@@ -161,17 +167,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (response?.type === "success") {
       const { code } = response.params;
+      if (!code) {
+        console.error("OAuth callback did not include an authorization code.");
+        setIsLoading(false);
+        return;
+      }
+      if (lastHandledCodeRef.current === code) {
+        return;
+      }
       const codeVerifier = request?.codeVerifier ?? codeVerifierRef.current;
       if (!codeVerifier) {
         console.error(
           "Missing PKCE code_verifier on OAuth callback; cannot redeem code.",
           { platform: Platform.OS, redirectUri },
         );
+        setIsLoading(false);
         return;
       }
+      lastHandledCodeRef.current = code;
+      waitingForExpoProxyCallbackRef.current = false;
+      if (dismissFallbackTimerRef.current) {
+        clearTimeout(dismissFallbackTimerRef.current);
+        dismissFallbackTimerRef.current = null;
+      }
       exchangeCodeForToken(code, codeVerifier);
+      return;
     }
-  }, [redirectUri, request?.codeVerifier, response]);
+    if (response) {
+      console.warn("OAuth response was not successful:", response.type);
+      if (
+        isExpoGoNative &&
+        response.type === "dismiss" &&
+        waitingForExpoProxyCallbackRef.current
+      ) {
+        dismissFallbackTimerRef.current = setTimeout(() => {
+          waitingForExpoProxyCallbackRef.current = false;
+          setIsLoading(false);
+        }, 5000);
+        return;
+      }
+      waitingForExpoProxyCallbackRef.current = false;
+      setIsLoading(false);
+    }
+  }, [isExpoGoNative, redirectUri, request?.codeVerifier, response]);
+
+  useEffect(() => {
+    if (!isExpoGoNative) return;
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      const parsed = Linking.parse(url);
+      const codeParam = parsed.queryParams?.code;
+      const code = typeof codeParam === "string" ? codeParam : undefined;
+      if (!code || lastHandledCodeRef.current === code) return;
+      waitingForExpoProxyCallbackRef.current = false;
+      if (dismissFallbackTimerRef.current) {
+        clearTimeout(dismissFallbackTimerRef.current);
+        dismissFallbackTimerRef.current = null;
+      }
+      const codeVerifier = request?.codeVerifier ?? codeVerifierRef.current;
+      if (!codeVerifier) {
+        console.error(
+          "Missing PKCE code_verifier from deep-link callback; cannot redeem code.",
+          { platform: Platform.OS, redirectUri },
+        );
+        setIsLoading(false);
+        return;
+      }
+      lastHandledCodeRef.current = code;
+      exchangeCodeForToken(code, codeVerifier);
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [isExpoGoNative, redirectUri, request?.codeVerifier]);
+
+  useEffect(() => {
+    return () => {
+      if (dismissFallbackTimerRef.current) {
+        clearTimeout(dismissFallbackTimerRef.current);
+      }
+    };
+  }, []);
 
   const exchangeCodeForToken = async (code: string, codeVerifier?: string) => {
     setIsLoading(true);
@@ -286,7 +361,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       expoGoReturnUrl,
       usesExpoProxyStartUrl: !!promptUrl,
     });
-    await promptAsync(promptUrl ? { url: promptUrl } : undefined);
+    waitingForExpoProxyCallbackRef.current = isExpoGoNative;
+    if (dismissFallbackTimerRef.current) {
+      clearTimeout(dismissFallbackTimerRef.current);
+      dismissFallbackTimerRef.current = null;
+    }
+    setIsLoading(true);
+    const promptResult = await promptAsync(
+      promptUrl ? { url: promptUrl } : undefined,
+    );
+    if (promptResult.type !== "success") {
+      if (
+        isExpoGoNative &&
+        promptResult.type === "dismiss" &&
+        waitingForExpoProxyCallbackRef.current
+      ) {
+        return;
+      }
+      waitingForExpoProxyCallbackRef.current = false;
+      setIsLoading(false);
+    }
   };
 
   const signOut = async () => {

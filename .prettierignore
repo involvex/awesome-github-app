@@ -18,3 +18,4 @@ packages/app/out
 .gemini
 .kilocode
 packages/app/android/.gradle
+docs/Expo
