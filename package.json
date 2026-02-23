@@ -23,16 +23,16 @@
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "doctor": "bunx expo-doctor --verbose",
     "expo:check": "bunx expo install --check",
+    "expo:prebuild": "bun run prebuild && expo prebuild",
     "format": "prettier . --write",
+    "go": "bun run prebuild && bunx expo start --go -c",
     "ios": "expo run:ios",
     "lint": "eslint . --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers",
     "lint:fix": "eslint --fix . --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers",
     "native:sync": "expo prebuild --no-install",
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "web": "expo start --web",
-    "expo:prebuild": "bun run prebuild && expo prebuild",
-    "go": "bun run prebuild && bunx expo start --go -c"
+    "web": "expo start --web"
   },
   "overrides": {
     "expo-image": "~55.0.4"

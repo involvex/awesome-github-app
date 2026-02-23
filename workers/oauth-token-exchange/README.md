@@ -14,9 +14,12 @@ This Worker proxies OAuth token exchange requests to GitHub, keeping the client 
    ```
    GITHUB_CLIENT_ID_WEB=your_web_client_id
    GITHUB_CLIENT_SECRET_WEB=your_web_client_secret
+   GITHUB_CLIENT_ID_EXPO_GO=your_expo_go_client_id
+   GITHUB_CLIENT_SECRET_EXPO_GO=your_expo_go_client_secret
    ```
 
-   `GITHUB_CLIENT_ID_WEB` must be the same web OAuth client ID configured in the app (`extra.oauth.webGithubClientId`).
+   `GITHUB_CLIENT_ID_WEB` must match `extra.oauth.webGithubClientId`.
+   `GITHUB_CLIENT_ID_EXPO_GO` must match `extra.oauth.expoGoGithubClientId`.
 
 ## Development
 
@@ -39,6 +42,8 @@ bun run deploy
 # Set secrets in Cloudflare
 wrangler secret put GITHUB_CLIENT_ID_WEB
 wrangler secret put GITHUB_CLIENT_SECRET_WEB
+wrangler secret put GITHUB_CLIENT_ID_EXPO_GO
+wrangler secret put GITHUB_CLIENT_SECRET_EXPO_GO
 
 # Deploy
 bun run deploy:prod

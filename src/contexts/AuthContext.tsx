@@ -43,6 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = "github_user_profile";
 const GITHUB_TOKEN_KEY = "github_access_token";
+const OAUTH_PKCE_VERIFIER_KEY = "oauth_pkce_verifier";
 
 const discovery = {
   authorizationEndpoint: "https://github.com/login/oauth/authorize",
@@ -121,6 +122,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [request?.codeVerifier]);
 
+  const resolveCodeVerifier = async () => {
+    const inMemoryVerifier = request?.codeVerifier ?? codeVerifierRef.current;
+    if (inMemoryVerifier) return inMemoryVerifier;
+    const storedVerifier = await getItem(OAUTH_PKCE_VERIFIER_KEY);
+    return storedVerifier ?? undefined;
+  };
+
+  const handleAuthorizationCode = async (code: string) => {
+    if (lastHandledCodeRef.current === code) return;
+    lastHandledCodeRef.current = code;
+    waitingForExpoProxyCallbackRef.current = false;
+    if (dismissFallbackTimerRef.current) {
+      clearTimeout(dismissFallbackTimerRef.current);
+      dismissFallbackTimerRef.current = null;
+    }
+    const codeVerifier = await resolveCodeVerifier();
+    if (!codeVerifier) {
+      console.error(
+        "Missing PKCE code_verifier on OAuth callback; cannot redeem code.",
+        { platform: Platform.OS, redirectUri },
+      );
+      setIsLoading(false);
+      return;
+    }
+    await exchangeCodeForToken(code, codeVerifier);
+    await deleteItem(OAUTH_PKCE_VERIFIER_KEY);
+  };
+
   useEffect(() => {
     if (isExpoGoNative && !expoProjectFullName) {
       console.warn(
@@ -172,25 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         return;
       }
-      if (lastHandledCodeRef.current === code) {
-        return;
-      }
-      const codeVerifier = request?.codeVerifier ?? codeVerifierRef.current;
-      if (!codeVerifier) {
-        console.error(
-          "Missing PKCE code_verifier on OAuth callback; cannot redeem code.",
-          { platform: Platform.OS, redirectUri },
-        );
-        setIsLoading(false);
-        return;
-      }
-      lastHandledCodeRef.current = code;
-      waitingForExpoProxyCallbackRef.current = false;
-      if (dismissFallbackTimerRef.current) {
-        clearTimeout(dismissFallbackTimerRef.current);
-        dismissFallbackTimerRef.current = null;
-      }
-      exchangeCodeForToken(code, codeVerifier);
+      void handleAuthorizationCode(code);
       return;
     }
     if (response) {
@@ -217,23 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsed = Linking.parse(url);
       const codeParam = parsed.queryParams?.code;
       const code = typeof codeParam === "string" ? codeParam : undefined;
-      if (!code || lastHandledCodeRef.current === code) return;
-      waitingForExpoProxyCallbackRef.current = false;
-      if (dismissFallbackTimerRef.current) {
-        clearTimeout(dismissFallbackTimerRef.current);
-        dismissFallbackTimerRef.current = null;
-      }
-      const codeVerifier = request?.codeVerifier ?? codeVerifierRef.current;
-      if (!codeVerifier) {
-        console.error(
-          "Missing PKCE code_verifier from deep-link callback; cannot redeem code.",
-          { platform: Platform.OS, redirectUri },
-        );
-        setIsLoading(false);
-        return;
-      }
-      lastHandledCodeRef.current = code;
-      exchangeCodeForToken(code, codeVerifier);
+      if (!code) return;
+      void handleAuthorizationCode(code);
     });
     return () => {
       subscription.remove();
@@ -252,7 +248,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     let tokenUrl = "https://github.com/login/oauth/access_token";
     try {
-      tokenUrl = isWeb ? webTokenExchangeUrl : tokenUrl;
+      const usesWorkerTokenExchange = isWeb || isExpoGoNative;
+      tokenUrl = usesWorkerTokenExchange ? webTokenExchangeUrl : tokenUrl;
 
       const tokenRes = await fetch(tokenUrl, {
         method: "POST",
@@ -262,8 +259,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({
           client_id: clientId,
-          // On web, the Cloudflare Worker handles client_secret
-          ...(isWeb ? {} : {}),
           code,
           code_verifier: codeVerifier,
           redirect_uri: redirectUri,
@@ -367,6 +362,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dismissFallbackTimerRef.current = null;
     }
     setIsLoading(true);
+    lastHandledCodeRef.current = null;
+    if (request.codeVerifier) {
+      codeVerifierRef.current = request.codeVerifier;
+      await setItem(OAUTH_PKCE_VERIFIER_KEY, request.codeVerifier);
+    }
     const promptResult = await promptAsync(
       promptUrl ? { url: promptUrl } : undefined,
     );

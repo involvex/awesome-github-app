@@ -3,6 +3,8 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID_WEB?: string;
   GITHUB_CLIENT_SECRET_WEB?: string;
+  GITHUB_CLIENT_ID_EXPO_GO?: string;
+  GITHUB_CLIENT_SECRET_EXPO_GO?: string;
 }
 
 export default {
@@ -25,9 +27,26 @@ export default {
     try {
       const { code, redirect_uri, client_id, code_verifier } =
         await request.json();
-      const workerClientId = env.GITHUB_CLIENT_ID_WEB ?? env.GITHUB_CLIENT_ID;
-      const workerClientSecret =
-        env.GITHUB_CLIENT_SECRET_WEB ?? env.GITHUB_CLIENT_SECRET;
+      const credentialPairs = [
+        {
+          clientId: env.GITHUB_CLIENT_ID_WEB,
+          clientSecret: env.GITHUB_CLIENT_SECRET_WEB,
+        },
+        {
+          clientId: env.GITHUB_CLIENT_ID_EXPO_GO,
+          clientSecret: env.GITHUB_CLIENT_SECRET_EXPO_GO,
+        },
+        {
+          clientId: env.GITHUB_CLIENT_ID,
+          clientSecret: env.GITHUB_CLIENT_SECRET,
+        },
+      ].filter(pair => pair.clientId && pair.clientSecret);
+
+      const selectedPair = client_id
+        ? credentialPairs.find(pair => pair.clientId === client_id)
+        : credentialPairs[0];
+      const workerClientId = selectedPair?.clientId;
+      const workerClientSecret = selectedPair?.clientSecret;
 
       if (!code) {
         return Response.json({ error: "Missing code" }, { status: 400 });
@@ -37,7 +56,7 @@ export default {
           {
             error: "Worker OAuth credentials are not configured",
             error_description:
-              "Set GITHUB_CLIENT_ID_WEB/GITHUB_CLIENT_SECRET_WEB or GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET.",
+              "Set worker OAuth credentials for the requested client ID (WEB/EXPO_GO or fallback GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET).",
           },
           { status: 500 },
         );
@@ -47,7 +66,7 @@ export default {
           {
             error: "client_id_mismatch",
             error_description:
-              "The worker client_id does not match the web OAuth app client_id used for authorization.",
+              "The worker does not have matching credentials for the OAuth client_id used for authorization.",
           },
           { status: 400 },
         );

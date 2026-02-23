@@ -139,9 +139,12 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
    ```bash
     GITHUB_CLIENT_ID_WEB=your_web_client_id
     GITHUB_CLIENT_SECRET_WEB=your_web_client_secret
+    GITHUB_CLIENT_ID_EXPO_GO=your_expo_go_client_id
+    GITHUB_CLIENT_SECRET_EXPO_GO=your_expo_go_client_secret
    ```
 
    `GITHUB_CLIENT_ID_WEB` in the worker must match `webGithubClientId` used by the app.
+   `GITHUB_CLIENT_ID_EXPO_GO` in the worker must match `expoGoGithubClientId` used by the app.
 
 4. **Deploy the worker:**
 
@@ -159,6 +162,8 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
 ```bash
 wrangler secret put GITHUB_CLIENT_ID_WEB
 wrangler secret put GITHUB_CLIENT_SECRET_WEB
+wrangler secret put GITHUB_CLIENT_ID_EXPO_GO
+wrangler secret put GITHUB_CLIENT_SECRET_EXPO_GO
 bun run deploy:prod
 ```
 
