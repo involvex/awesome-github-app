@@ -1,13 +1,26 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "../components/ui/Card";
 import { useAppTheme } from "../lib/theme";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 
 export default function HomeScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    router.replace(isAuthenticated ? "/feed" : "/login");
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return null;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Card>

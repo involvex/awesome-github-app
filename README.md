@@ -105,18 +105,18 @@ bun install
 
 ### 2.1. Configure OAuth Credentials
 
-For development, update `app.json` with your GitHub OAuth Client IDs:
+Use environment variables (loaded via `app.config.js`) for secrets, and keep `app.json` fallbacks non-sensitive.
 
-```json
-"extra": {
-  "oauth": {
-    "githubClientId": "YOUR_NATIVE_CLIENT_ID",
-    "expoGoGithubClientId": "YOUR_EXPO_GO_CLIENT_ID_OPTIONAL",
-    "webGithubClientId": "YOUR_WEB_CLIENT_ID",
-    "webTokenExchangeUrl": "https://awesomegithubapp-api.involvex.workers.dev/token"
-  }
-}
-```
+Set a `.env` file (or CI env vars) with:
+
+- `GITHUB_CLIENT_ID_NATIVE` / `GITHUB_CLIENT_SECRET_NATIVE` — native app (`awesomegithubapp://oauth/callback`)
+- `GITHUB_CLIENT_ID_EXPO_GO` / `GITHUB_CLIENT_SECRET_EXPO_GO` — Expo Go proxy (`https://auth.expo.io/@involvex/awesome-github-app`)
+- `GITHUB_CLIENT_ID_WEB` / `GITHUB_CLIENT_SECRET_WEB` — web app (`http://localhost:8081/oauth/callback`)
+- `GITHUB_WEB_TOKEN_EXCHANGE_URL` — defaults to the Cloudflare Worker
+
+`app.json` may keep non-secret defaults if needed for local preview, but never commit secrets.
+
+Secrets stay server-side: do not put real secrets (client*secret) into `EXPO_PUBLIC*\*` or checked-in config. Use the Cloudflare Worker (or another backend) to exchange codes and keep secrets off the client.
 
 Use separate OAuth apps per platform:
 
