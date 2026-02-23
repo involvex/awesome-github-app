@@ -3,8 +3,6 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID_WEB?: string;
   GITHUB_CLIENT_SECRET_WEB?: string;
-  GITHUB_CLIENT_ID_EXPO_GO?: string;
-  GITHUB_CLIENT_SECRET_EXPO_GO?: string;
 }
 
 export default {
@@ -31,10 +29,6 @@ export default {
         {
           clientId: env.GITHUB_CLIENT_ID_WEB,
           clientSecret: env.GITHUB_CLIENT_SECRET_WEB,
-        },
-        {
-          clientId: env.GITHUB_CLIENT_ID_EXPO_GO,
-          clientSecret: env.GITHUB_CLIENT_SECRET_EXPO_GO,
         },
         {
           clientId: env.GITHUB_CLIENT_ID,

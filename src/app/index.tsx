@@ -14,7 +14,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (isLoading) return;
-    router.replace(isAuthenticated ? "/feed" : "/login");
+    router.replace(isAuthenticated ? "/(tabs)/feed" : "/login");
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {

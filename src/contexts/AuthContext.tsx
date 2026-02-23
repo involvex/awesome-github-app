@@ -1,19 +1,12 @@
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { setToken, clearToken, getOctokit } from "../lib/api/github";
-import Constants, { ExecutionEnvironment } from "expo-constants";
-import { getItem, setItem, deleteItem } from "../lib/storage";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { clearToken, getOctokit, setToken } from "../lib/api/github";
+import { deleteItem, getItem, setItem } from "../lib/storage";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
-import * as Linking from "expo-linking";
+import Constants from "expo-constants";
 
 export interface GitHubUser {
   id: number;
@@ -43,68 +36,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = "github_user_profile";
 const GITHUB_TOKEN_KEY = "github_access_token";
-const OAUTH_PKCE_VERIFIER_KEY = "oauth_pkce_verifier";
 
-const discovery = {
+const GITHUB_DISCOVERY = {
   authorizationEndpoint: "https://github.com/login/oauth/authorize",
   tokenEndpoint: "https://github.com/login/oauth/access_token",
   revocationEndpoint: "https://github.com/settings/connections/applications",
-};
-
-const buildExpoProxyStartUrl = (
-  authUrl: string,
-  returnUrl: string,
-  projectFullName: string,
-) => {
-  const query = new URLSearchParams({ authUrl, returnUrl });
-  return `https://auth.expo.io/${projectFullName}/start?${query.toString()}`;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isWeb = Platform.OS === "web";
+
   const nativeClientId =
     Constants.expoConfig?.extra?.oauth?.githubClientId ?? "";
-  const expoGoClientId =
-    Constants.expoConfig?.extra?.oauth?.expoGoGithubClientId ?? "";
   const webClientId =
     Constants.expoConfig?.extra?.oauth?.webGithubClientId ?? "";
-  const webTokenExchangeUrl =
+  const tokenExchangeUrl =
     Constants.expoConfig?.extra?.oauth?.webTokenExchangeUrl ??
     "https://awesomegithubapp-api.involvex.workers.dev/token";
-  const expoOwner = Constants.expoConfig?.owner;
-  const expoSlug = Constants.expoConfig?.slug;
-  const expoProjectFullName =
-    expoOwner && expoSlug ? `@${expoOwner}/${expoSlug}` : "";
-  const expoGoRedirectUri = expoProjectFullName
-    ? `https://auth.expo.io/${expoProjectFullName}`
-    : AuthSession.makeRedirectUri({ path: "oauth/callback" });
-  const isWeb = Platform.OS === "web";
-  const isExpoGoNative =
-    !isWeb &&
-    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-  const expoGoReturnUrl = AuthSession.makeRedirectUri({
-    path: "oauth/callback",
-  });
-  const nativeRedirectUri = isExpoGoNative
-    ? expoGoRedirectUri
-    : "awesomegithubapp://oauth/callback";
-  const clientId = isWeb
-    ? webClientId
-    : isExpoGoNative
-      ? expoGoClientId
-      : nativeClientId;
-  const codeVerifierRef = useRef<string | undefined>(undefined);
-  const lastHandledCodeRef = useRef<string | null>(null);
-  const waitingForExpoProxyCallbackRef = useRef(false);
-  const dismissFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
 
+  // Web uses a separate OAuth app; native (dev client + production) uses the default app
+  const clientId = isWeb ? webClientId : nativeClientId;
   const redirectUri = isWeb
     ? AuthSession.makeRedirectUri({ path: "oauth/callback" })
-    : nativeRedirectUri;
+    : "awesomegithubapp://oauth/callback";
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
@@ -113,67 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       redirectUri,
       usePKCE: true,
     },
-    discovery,
+    GITHUB_DISCOVERY,
   );
-
-  useEffect(() => {
-    if (request?.codeVerifier) {
-      codeVerifierRef.current = request.codeVerifier;
-    }
-  }, [request?.codeVerifier]);
-
-  const resolveCodeVerifier = async () => {
-    const inMemoryVerifier = request?.codeVerifier ?? codeVerifierRef.current;
-    if (inMemoryVerifier) return inMemoryVerifier;
-    const storedVerifier = await getItem(OAUTH_PKCE_VERIFIER_KEY);
-    return storedVerifier ?? undefined;
-  };
-
-  const handleAuthorizationCode = async (code: string) => {
-    if (lastHandledCodeRef.current === code) return;
-    lastHandledCodeRef.current = code;
-    waitingForExpoProxyCallbackRef.current = false;
-    if (dismissFallbackTimerRef.current) {
-      clearTimeout(dismissFallbackTimerRef.current);
-      dismissFallbackTimerRef.current = null;
-    }
-    const codeVerifier = await resolveCodeVerifier();
-    if (!codeVerifier) {
-      console.error(
-        "Missing PKCE code_verifier on OAuth callback; cannot redeem code.",
-        { platform: Platform.OS, redirectUri },
-      );
-      setIsLoading(false);
-      return;
-    }
-    await exchangeCodeForToken(code, codeVerifier);
-    await deleteItem(OAUTH_PKCE_VERIFIER_KEY);
-  };
-
-  useEffect(() => {
-    if (isExpoGoNative && !expoProjectFullName) {
-      console.warn(
-        "Expo Go OAuth proxy requires expo.owner and expo.slug in app config.",
-      );
-    }
-    if (isExpoGoNative && !expoGoClientId) {
-      console.warn(
-        "Expo Go requires a dedicated OAuth app client ID (extra.oauth.expoGoGithubClientId).",
-      );
-    }
-    if (!isWeb && webClientId && nativeClientId === webClientId) {
-      console.warn(
-        "Native and web OAuth client IDs are identical. Ensure native uses the native OAuth app client ID.",
-      );
-    }
-  }, [
-    expoGoClientId,
-    expoProjectFullName,
-    isExpoGoNative,
-    isWeb,
-    nativeClientId,
-    webClientId,
-  ]);
 
   // Load persisted user on mount
   useEffect(() => {
@@ -192,66 +90,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Handle OAuth response
+  // Handle OAuth response from the browser redirect
   useEffect(() => {
-    if (response?.type === "success") {
-      const { code } = response.params;
-      if (!code) {
-        console.error("OAuth callback did not include an authorization code.");
+    if (response?.type !== "success") {
+      if (response) {
+        console.warn("OAuth response was not successful:", response.type);
         setIsLoading(false);
-        return;
       }
-      void handleAuthorizationCode(code);
       return;
     }
-    if (response) {
-      console.warn("OAuth response was not successful:", response.type);
-      if (
-        isExpoGoNative &&
-        response.type === "dismiss" &&
-        waitingForExpoProxyCallbackRef.current
-      ) {
-        dismissFallbackTimerRef.current = setTimeout(() => {
-          waitingForExpoProxyCallbackRef.current = false;
-          setIsLoading(false);
-        }, 5000);
-        return;
-      }
-      waitingForExpoProxyCallbackRef.current = false;
+    const { code } = response.params;
+    if (!code) {
+      console.error("OAuth callback missing authorization code.");
       setIsLoading(false);
+      return;
     }
-  }, [isExpoGoNative, redirectUri, request?.codeVerifier, response]);
+    // code_verifier is available from the in-memory request object
+    void exchangeCodeForToken(code, request?.codeVerifier);
+  }, [response]);
 
-  useEffect(() => {
-    if (!isExpoGoNative) return;
-    const subscription = Linking.addEventListener("url", ({ url }) => {
-      const parsed = Linking.parse(url);
-      const codeParam = parsed.queryParams?.code;
-      const code = typeof codeParam === "string" ? codeParam : undefined;
-      if (!code) return;
-      void handleAuthorizationCode(code);
-    });
-    return () => {
-      subscription.remove();
-    };
-  }, [isExpoGoNative, redirectUri, request?.codeVerifier]);
-
-  useEffect(() => {
-    return () => {
-      if (dismissFallbackTimerRef.current) {
-        clearTimeout(dismissFallbackTimerRef.current);
-      }
-    };
-  }, []);
-
-  const exchangeCodeForToken = async (code: string, codeVerifier?: string) => {
+  // Always exchange through the Cloudflare Worker — it holds the client_secret.
+  // GitHub OAuth apps require client_secret; direct exchange from native would fail.
+  const exchangeCodeForToken = async (
+    code: string,
+    codeVerifier: string | undefined,
+  ) => {
     setIsLoading(true);
-    let tokenUrl = "https://github.com/login/oauth/access_token";
     try {
-      const usesWorkerTokenExchange = isWeb || isExpoGoNative;
-      tokenUrl = usesWorkerTokenExchange ? webTokenExchangeUrl : tokenUrl;
+      if (!codeVerifier) {
+        throw new Error(
+          "Missing PKCE code_verifier; cannot redeem authorization code.",
+        );
+      }
 
-      const tokenRes = await fetch(tokenUrl, {
+      const tokenRes = await fetch(tokenExchangeUrl, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -264,37 +136,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirect_uri: redirectUri,
         }),
       });
+
       const tokenData: {
         access_token?: string;
         error?: string;
         error_description?: string;
       } = await tokenRes.json();
+
       if (!tokenRes.ok || !tokenData.access_token) {
         const details = [tokenData.error, tokenData.error_description]
           .filter(Boolean)
           .join(": ");
         throw new Error(
-          details || `No access token returned (status ${tokenRes.status})`,
+          details || `Token exchange failed (status ${tokenRes.status})`,
         );
       }
 
       await setToken(tokenData.access_token);
       await fetchAndStoreUser();
     } catch (e) {
-      console.error(
-        "Token exchange failed:",
-        e,
-        "platform:",
-        Platform.OS,
-        "clientId:",
+      console.error("Token exchange failed:", e, {
+        platform: Platform.OS,
         clientId,
-        "tokenUrl:",
-        tokenUrl,
-        "hasCodeVerifier:",
-        !!codeVerifier,
-        "redirectUri:",
+        tokenExchangeUrl,
+        hasCodeVerifier: !!codeVerifier,
         redirectUri,
-      );
+      });
     } finally {
       setIsLoading(false);
     }
@@ -329,56 +196,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     if (!clientId) {
       console.error(
-        `Missing OAuth client ID for ${isWeb ? "web" : "native"} platform`,
+        `Missing OAuth client ID for ${isWeb ? "web" : "native"} platform.`,
       );
-      if (isExpoGoNative) {
-        console.error(
-          "Set extra.oauth.expoGoGithubClientId and register this callback URL in that OAuth app:",
-          nativeRedirectUri,
-        );
-      }
       return;
     }
-    const promptUrl =
-      isExpoGoNative && expoProjectFullName && request.url
-        ? buildExpoProxyStartUrl(
-            request.url,
-            expoGoReturnUrl,
-            expoProjectFullName,
-          )
-        : undefined;
     console.info("Starting OAuth sign-in", {
       platform: Platform.OS,
-      executionEnvironment: Constants.executionEnvironment,
-      isExpoGoNative,
       clientId,
       redirectUri,
-      expoGoReturnUrl,
-      usesExpoProxyStartUrl: !!promptUrl,
     });
-    waitingForExpoProxyCallbackRef.current = isExpoGoNative;
-    if (dismissFallbackTimerRef.current) {
-      clearTimeout(dismissFallbackTimerRef.current);
-      dismissFallbackTimerRef.current = null;
-    }
     setIsLoading(true);
-    lastHandledCodeRef.current = null;
-    if (request.codeVerifier) {
-      codeVerifierRef.current = request.codeVerifier;
-      await setItem(OAUTH_PKCE_VERIFIER_KEY, request.codeVerifier);
-    }
-    const promptResult = await promptAsync(
-      promptUrl ? { url: promptUrl } : undefined,
-    );
-    if (promptResult.type !== "success") {
-      if (
-        isExpoGoNative &&
-        promptResult.type === "dismiss" &&
-        waitingForExpoProxyCallbackRef.current
-      ) {
-        return;
-      }
-      waitingForExpoProxyCallbackRef.current = false;
+    const result = await promptAsync();
+    if (result.type !== "success") {
       setIsLoading(false);
     }
   };

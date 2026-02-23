@@ -19,10 +19,6 @@ module.exports = ({ config }) => {
           process.env.GITHUB_CLIENT_ID ??
           oauthConfig.githubClientId ??
           "",
-        expoGoGithubClientId:
-          process.env.GITHUB_CLIENT_ID_EXPO_GO ??
-          oauthConfig.expoGoGithubClientId ??
-          "",
         // Web-only OAuth app — separate GitHub OAuth App with localhost callback
         webGithubClientId:
           process.env.GITHUB_CLIENT_ID_WEB ??
