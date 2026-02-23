@@ -22,3 +22,4 @@ workers/oauth-token-exchange/out
 workers/oauth-token-exchange/.wrangler
 workers/oauth-token-exchange/wrangler.toml
 .mcp.json
+coverage

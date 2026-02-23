@@ -85,6 +85,12 @@ cd awesome-github-app
 bun install
 ```
 
+## Testing
+
+- `bun run test` — run Jest (jest-expo preset) in watch mode.
+- `bun run test:ci` — run the suite with coverage in CI-friendly mode.
+- Tests use `__tests__/test-utils/render.tsx` for provider-wrapped renders and `jest.setup.js` for Expo/React Native mocks.
+
 ### 2. Create a GitHub OAuth App
 
 1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**

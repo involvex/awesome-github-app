@@ -27,16 +27,33 @@
     "format": "prettier . --write",
     "go": "bun run prebuild && bunx expo start --go -c",
     "ios": "expo run:ios",
-    "lint": "eslint . --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
-    "lint:fix": "eslint --fix . --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
+    "lint": "eslint src --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
+    "lint:fix": "eslint --fix src --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
     "native:sync": "expo prebuild --no-install",
     "start": "expo start",
     "test": "jest --watchAll",
+    "test:ci": "jest --runInBand --ci --coverage",
     "typecheck": "tsc --noEmit",
     "web": "expo start --web"
   },
   "jest": {
-    "preset": "jest-expo"
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testEnvironment": "jsdom",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/",
+      "/build/",
+      "__tests__/test-utils"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@react-native|react-native|expo(nent)?|expo-modules-core|expo-status-bar|expo-font|expo-asset|@expo|expo-router|@unimodules|@react-navigation|@tanstack|@expo/vector-icons|react-native-reanimated|react-native-gesture-handler)/)"
+    ]
   },
   "overrides": {
     "expo-image": "~55.0.4"
@@ -47,6 +64,7 @@
     "@octokit/rest": "^22.0.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@tanstack/react-query": "^5.90.21",
+    "@testing-library/jest-native": "^5.4.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "expo": "55.0.0-preview.11",
