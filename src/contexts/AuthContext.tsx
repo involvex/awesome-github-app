@@ -160,7 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       console.error("Token exchange failed:", errorMessage, {
         platform: Platform.OS,
-        tokenExchangeUrl, // endpoint URL is not secret
         hasCodeVerifier: !!codeVerifier,
       });
     } finally {
