@@ -58,13 +58,13 @@ export default function UserProfileScreen() {
           name={user.login}
           size={80}
         />
-        {user.name && (
+        {!!user.name && (
           <Text style={[styles.name, { color: theme.text }]}>{user.name}</Text>
         )}
         <Text style={[styles.login, { color: theme.subtle }]}>
           @{user.login}
         </Text>
-        {user.bio && (
+        {!!user.bio && (
           <Text style={[styles.bio, { color: theme.text }]}>{user.bio}</Text>
         )}
 
@@ -89,7 +89,7 @@ export default function UserProfileScreen() {
         </View>
 
         <View style={styles.metaRow}>
-          {user.company && (
+          {!!user.company && (
             <View style={styles.metaItem}>
               <Ionicons
                 name="business-outline"
@@ -101,7 +101,7 @@ export default function UserProfileScreen() {
               </Text>
             </View>
           )}
-          {user.location && (
+          {!!user.location && (
             <View style={styles.metaItem}>
               <Ionicons
                 name="location-outline"

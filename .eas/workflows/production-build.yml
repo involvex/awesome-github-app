@@ -1,57 +1,31 @@
-
-# Custom job
-#
-# This workflow shows how to write custom jobs.
-# It contains a predefined workflow step and a shell command to print "Hello, World!".
-#
-# Key features:
-# - Triggers on pushes to the main branch.
-#    (Requires linked GitHub account: https://expo.dev/accounts/[account]/settings/github)
-# - Can be triggered manually with eas workflow:run custom.yml
-# - Runs eas/checkout then a custom "echo" command
-#
-# For detailed documentation on workflow syntax and available step types, visit:
-# https://docs.expo.dev/eas/workflows/syntax/#jobsjob_idstepsstepuses
-#
-# Created by EAS CLI v18.0.3
-#
-
-name: Custom workflow
+name: Production Build
 on:
   push:
     branches:
       - main
+
 jobs:
   build_android:
     type: build
-    env:
-      EXPO_GITHUB_CLIENT_ID: ${{ secrets.EXPO_GITHUB_CLIENT_ID }}
-      EXPO_GITHUB_SECRET: ${{ secrets.EXPO_GITHUB_SECRET }}
-      EXPO_GITHUB_CLIENT_ID_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_ID_WEB }}
-      EXPO_GITHUB_CLIENT_SECRET_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_SECRET_WEB }}
-      EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL: ${{ secrets.EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL }} 
-      ENVIRONMENT: production
-    steps:
-      - uses: eas/checkout@v3
-      - run: eas build:configure --platform android -e production
-      - run: eas build --platform android -e production
     params:
       platform: android
       profile: production
-
-  upload_build:
-    type: custom
-    steps:
-      - needs: build_android
-    runs-on: ubuntu-latest
-    with:
-      'android/app/build/outputs/apk/release/app-release.apk': app-release.apk
-    params:
-      platform: android
     env:
       EXPO_GITHUB_CLIENT_ID: ${{ secrets.EXPO_GITHUB_CLIENT_ID }}
       EXPO_GITHUB_SECRET: ${{ secrets.EXPO_GITHUB_SECRET }}
       EXPO_GITHUB_CLIENT_ID_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_ID_WEB }}
       EXPO_GITHUB_CLIENT_SECRET_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_SECRET_WEB }}
-      EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL: ${{ secrets.EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL }} 
+      EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL: ${{ secrets.EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL }}
+      ENVIRONMENT: production
+
+  post_build:
+    type: custom
+    needs: [build_android]
+    steps:
+      - uses: eas/checkout
+      - name: Report build
+        run: |
+          echo "Android production build completed."
+          echo "Build ID: ${{ needs.build_android.outputs.build_id }}"
+    env:
       ENVIRONMENT: production

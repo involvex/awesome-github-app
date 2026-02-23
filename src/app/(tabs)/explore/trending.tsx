@@ -72,7 +72,7 @@ function TrendingCard({ item, rank }: { item: SearchRepoItem; rank: number }) {
           {item.full_name}
         </Text>
       </View>
-      {item.description && (
+      {!!item.description && (
         <Text
           style={[styles.desc, { color: theme.subtle }]}
           numberOfLines={2}

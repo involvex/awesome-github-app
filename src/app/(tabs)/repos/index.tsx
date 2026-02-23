@@ -70,7 +70,7 @@ function RepoCard({ item }: { item: MyRepo }) {
           </View>
         )}
       </View>
-      {item.description && (
+      {!!item.description && (
         <Text
           style={[styles.desc, { color: theme.subtle }]}
           numberOfLines={2}

@@ -28,12 +28,12 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
 
   return (
     <View style={styles.tabContent}>
-      {data.description && (
+      {!!data.description && (
         <Text style={[styles.description, { color: theme.text }]}>
           {data.description}
         </Text>
       )}
-      {data.homepage && (
+      {!!data.homepage && (
         <Pressable
           style={styles.link}
           onPress={() => Linking.openURL(data.homepage!)}

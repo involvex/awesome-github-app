@@ -122,7 +122,7 @@ export function RadioGroup<T extends string>({
                   >
                     {option.label}
                   </Text>
-                  {option.description && (
+                  {!!option.description && (
                     <Text
                       style={[
                         styles.optionDescription,

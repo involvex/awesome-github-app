@@ -91,7 +91,7 @@ export default function ProfileMenuScreen() {
                 <Text style={[styles.repoName, { color: theme.primary }]}>
                   {item.full_name}
                 </Text>
-                {item.description && (
+                {!!item.description && (
                   <Text
                     style={[styles.repoDesc, { color: theme.subtle }]}
                     numberOfLines={2}

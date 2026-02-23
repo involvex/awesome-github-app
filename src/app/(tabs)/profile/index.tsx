@@ -127,7 +127,7 @@ export default function ProfileScreen() {
           size={72}
         />
         <View style={styles.profileInfo}>
-          {user.name && (
+          {!!user.name && (
             <Text style={[styles.name, { color: theme.text }]}>
               {user.name}
             </Text>
@@ -135,11 +135,11 @@ export default function ProfileScreen() {
           <Text style={[styles.login, { color: theme.subtle }]}>
             @{user.login}
           </Text>
-          {user.bio && (
+          {!!user.bio && (
             <Text style={[styles.bio, { color: theme.text }]}>{user.bio}</Text>
           )}
           <View style={styles.metaRow}>
-            {user.company && (
+            {!!user.company && (
               <View style={styles.metaItem}>
                 <Ionicons
                   name="business-outline"
@@ -151,7 +151,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             )}
-            {user.location && (
+            {!!user.location && (
               <View style={styles.metaItem}>
                 <Ionicons
                   name="location-outline"
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             )}
-            {user.blog && (
+            {!!user.blog && (
               <View style={styles.metaItem}>
                 <Ionicons
                   name="link-outline"
@@ -269,7 +269,7 @@ export default function ProfileScreen() {
                     forks={repo.forkCount}
                   />
                 </View>
-                {repo.description && (
+                {!!repo.description && (
                   <Text style={[styles.repoDesc, { color: theme.text }]}>
                     {repo.description}
                   </Text>

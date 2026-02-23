@@ -1,7 +1,21 @@
-import { fireEvent } from "@testing-library/react-native";
-
 import { renderWithProviders } from "../test-utils/render";
+import { fireEvent } from "@testing-library/react-native";
 import HomeScreen from "../../src/app/index";
+import React from "react";
+
+jest.mock("../../src/contexts/AuthContext", () => ({
+  __esModule: true,
+  useAuth: () => ({
+    isAuthenticated: false,
+    isLoading: false,
+    user: null,
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
 
 describe("Home workflow", () => {
   test("navigates to login quickly", () => {

@@ -6,15 +6,40 @@ import {
   Text,
   View,
 } from "react-native";
+import { Avatar, ChipFilter } from "../../../components/ui";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useActivity } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 
 type ActivityEvent = NonNullable<
   ReturnType<typeof useActivity>["data"]
 >["pages"][number][number];
+
+type EventFilter =
+  | "all"
+  | "PushEvent"
+  | "PullRequestEvent"
+  | "IssuesEvent"
+  | "WatchEvent"
+  | "ForkEvent"
+  | "IssueCommentEvent"
+  | "CreateEvent"
+  | "ReleaseEvent";
+
+const FILTER_OPTIONS: { label: string; value: EventFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Push", value: "PushEvent" },
+  { label: "Pull Request", value: "PullRequestEvent" },
+  { label: "Issues", value: "IssuesEvent" },
+  { label: "Stars", value: "WatchEvent" },
+  { label: "Forks", value: "ForkEvent" },
+  { label: "Comments", value: "IssueCommentEvent" },
+  { label: "Create", value: "CreateEvent" },
+  { label: "Release", value: "ReleaseEvent" },
+];
 
 function EventCard({ event }: { event: ActivityEvent }) {
   const theme = useAppTheme();
@@ -42,12 +67,19 @@ function EventCard({ event }: { event: ActivityEvent }) {
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
     >
-      <Ionicons
-        name={icon as keyof typeof Ionicons.glyphMap}
-        size={18}
-        color={theme.primary}
-        style={styles.eventIcon}
-      />
+      <View style={styles.eventLeft}>
+        <Avatar
+          uri={event.actor?.avatar_url}
+          name={event.actor?.login}
+          size={32}
+        />
+        <Ionicons
+          name={icon as keyof typeof Ionicons.glyphMap}
+          size={14}
+          color={theme.primary}
+          style={[styles.eventIconBadge, { backgroundColor: theme.surface }]}
+        />
+      </View>
       <View style={styles.eventBody}>
         <Text style={[styles.eventActor, { color: theme.text }]}>
           {event.actor?.login}{" "}
@@ -91,13 +123,24 @@ export default function FeedScreen() {
   const theme = useAppTheme();
   const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
     useActivity(user?.login ?? "");
-  const events = data?.pages.flat() ?? [];
+  const [activeFilter, setActiveFilter] = useState<EventFilter>("all");
+
+  const allEvents = data?.pages.flat() ?? [];
+  const events =
+    activeFilter === "all"
+      ? allEvents
+      : allEvents.filter(e => e.type === activeFilter);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Feed</Text>
       </View>
+      <ChipFilter
+        options={FILTER_OPTIONS}
+        value={activeFilter}
+        onChange={setActiveFilter}
+      />
       {isLoading ? (
         <ActivityIndicator
           style={styles.loader}
@@ -147,7 +190,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
-  eventIcon: { marginTop: 2 },
+  eventLeft: { alignItems: "center", width: 32 },
+  eventIconBadge: {
+    marginTop: -8,
+    borderRadius: 8,
+    padding: 1,
+  },
   eventBody: { flex: 1, gap: 3 },
   eventActor: { fontSize: 14, fontWeight: "600" },
   eventLabel: { fontWeight: "400" },
