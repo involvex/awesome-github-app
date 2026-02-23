@@ -1,8 +1,8 @@
 name: Production Build
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 jobs:
   build_android:

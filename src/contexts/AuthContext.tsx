@@ -155,12 +155,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setToken(tokenData.access_token);
       await fetchAndStoreUser();
     } catch (e) {
-      console.error("Token exchange failed:", e, {
+      // Avoid logging sensitive values (client IDs, redirect URIs or token data).
+      // Log only the error message and non-sensitive flags to aid debugging.
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.error("Token exchange failed:", errorMessage, {
         platform: Platform.OS,
-        clientId,
-        tokenExchangeUrl,
+        tokenExchangeUrl, // endpoint URL is not secret
         hasCodeVerifier: !!codeVerifier,
-        redirectUri,
       });
     } finally {
       setIsLoading(false);
@@ -200,10 +201,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       return;
     }
+    // Do not log OAuth client IDs or redirect URIs in clear text.
+    // Log only non-sensitive flags to help triage issues without exposing secrets.
     console.info("Starting OAuth sign-in", {
       platform: Platform.OS,
-      clientId,
-      redirectUri,
+      isWeb,
+      hasClientId: !!clientId,
     });
     setIsLoading(true);
     const result = await promptAsync();
