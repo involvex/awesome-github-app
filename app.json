@@ -6,6 +6,8 @@
     "version": "0.0.2",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "githubUrl": "https://github.com/involvex/awesome-github-app.git",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -25,12 +27,13 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 2,
-      "newArchEnabled": true
+      "userInterfaceStyle": "automatic",
+      "versionCode": 2
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/icon.png",
+      "name": "Awesome Github App"
     },
     "ios": {
       "bundleIdentifier": "com.involvex.awesomegithubapp",
