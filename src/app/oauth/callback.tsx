@@ -12,7 +12,7 @@ export default function OAuthCallbackScreen() {
 
   useEffect(() => {
     if (isLoading) return;
-    router.replace(isAuthenticated ? "/(tabs)" : "/(auth)/login");
+    router.replace(isAuthenticated ? "/(tabs)/feed" : "/(auth)/login");
   }, [isAuthenticated, isLoading, router]);
 
   return (

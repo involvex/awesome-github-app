@@ -61,9 +61,20 @@ Available hooks: `useActivity`, `useTrending`, `useRepo`, `useRepoTopics`, `useU
 
 ### Auth
 
-OAuth flow uses `expo-auth-session` + `expo-web-browser`. The GitHub access token is stored in `expo-secure-store` under the key `github_access_token`. `resetOctokit()` must be called after token changes (handled by `setToken` / `clearToken`).
+OAuth flow uses `expo-auth-session` + `expo-web-browser`. Two GitHub OAuth Apps are used:
 
-GitHub OAuth Client ID is configured in `app.json` under `extra.oauth.githubClientId`.
+| Platform             | Client ID env var      | Redirect URI                           |
+| -------------------- | ---------------------- | -------------------------------------- |
+| Native (Android/iOS) | `GITHUB_CLIENT_ID`     | `awesomegithubapp://oauth/callback`    |
+| Web                  | `GITHUB_CLIENT_ID_WEB` | `http://localhost:8081/oauth/callback` |
+
+**All** token exchanges go through the Cloudflare Worker (`workers/oauth-token-exchange`), which holds the client secrets. The app never has direct access to `client_secret`.
+
+After the OAuth redirect, `src/app/oauth/callback.tsx` handles the deep link. It is registered in the root Stack in `_layout.tsx` so Expo Router can navigate to it regardless of auth state.
+
+The GitHub access token is stored in `expo-secure-store` under the key `github_access_token`. `resetOctokit()` must be called after token changes (handled by `setToken` / `clearToken`).
+
+Client IDs are configured in `app.json` under `extra.oauth.githubClientId` (native) and `extra.oauth.webGithubClientId` (web), populated from env vars by `app.config.js`.
 
 ## Key Conventions
 

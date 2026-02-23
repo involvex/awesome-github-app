@@ -38,6 +38,10 @@ function RootLayoutNav() {
         name="user/[login]"
         options={{ headerShown: true, title: "Profile" }}
       />
+      <Stack.Screen
+        name="oauth/callback"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

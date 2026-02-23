@@ -91,42 +91,36 @@ bun install
 - `bun run test:ci` — run the suite with coverage in CI-friendly mode.
 - Tests use `__tests__/test-utils/render.tsx` for provider-wrapped renders and `jest.setup.js` for Expo/React Native mocks.
 
-### 2. Create a GitHub OAuth App
+### 2. Create GitHub OAuth Apps
+
+Two separate GitHub OAuth Apps are required — one for native (Android/iOS) and one for web.
+
+#### Native app (Android & iOS)
 
 1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
-2. Set **Homepage URL** to: `http://localhost:8081` (for local web development)
-3. Set **Authorization callback URL** to all three (one per line):
-   ```
-   awesomegithubapp://oauth/callback
-   http://localhost:8081/oauth/callback
-   https://your-production-domain.com/oauth/callback
-   ```
-4. Copy your **Client ID** and **Client Secret**
+2. Set **Authorization callback URL** to: `awesomegithubapp://oauth/callback`
+3. Copy the **Client ID** and **Client Secret**
+
+#### Web app
+
+1. Create a second OAuth App
+2. Set **Authorization callback URL** to: `http://localhost:8081/oauth/callback`
+3. Copy the **Client ID** and **Client Secret**
 
 ### 2.1. Configure OAuth Credentials
 
-Use environment variables (loaded via `app.config.js`) for secrets, and keep `app.json` fallbacks non-sensitive.
+Set a `.env` file at the project root (loaded via `app.config.js`):
 
-Set a `.env` file (or CI env vars) with:
+```bash
+GITHUB_CLIENT_ID=<native-client-id>
+GITHUB_CLIENT_ID_WEB=<web-client-id>
+```
 
-- `GITHUB_CLIENT_ID_NATIVE` / `GITHUB_CLIENT_SECRET_NATIVE` — native app (`awesomegithubapp://oauth/callback`)
-- `GITHUB_CLIENT_ID_EXPO_GO` / `GITHUB_CLIENT_SECRET_EXPO_GO` — Expo Go proxy (`https://auth.expo.io/@involvex/awesome-github-app`)
-- `GITHUB_CLIENT_ID_WEB` / `GITHUB_CLIENT_SECRET_WEB` — web app (`http://localhost:8081/oauth/callback`)
-- `GITHUB_WEB_TOKEN_EXCHANGE_URL` — defaults to the Cloudflare Worker
+> The client secrets are **never** stored in the app. They live only in the Cloudflare Worker. Never commit `.env`.
 
-`app.json` may keep non-secret defaults if needed for local preview, but never commit secrets.
+### 2.2. Set Up the Cloudflare Worker
 
-Secrets stay server-side: do not put real secrets (client*secret) into `EXPO_PUBLIC*\*` or checked-in config. Use the Cloudflare Worker (or another backend) to exchange codes and keep secrets off the client.
-
-Use separate OAuth apps per platform:
-
-- Native OAuth app callback: `awesomegithubapp://oauth/callback`
-- Web OAuth app callback: `http://localhost:8081/oauth/callback`
-- Optional Expo Go OAuth app callback: `https://auth.expo.io/@involvex/awesome-github-app`
-
-### 2.2. Set Up Cloudflare Worker for Web OAuth
-
-The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens without exposing the client secret.
+All token exchanges (both native and web) go through the Cloudflare Worker, which holds the client secrets server-side.
 
 1. **Navigate to the worker directory:**
 
@@ -140,17 +134,14 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
    cp .env.example .env
    ```
 
-3. **Add your GitHub OAuth credentials to `.env`:**
+3. **Add credentials to `.env`:**
 
    ```bash
-    GITHUB_CLIENT_ID_WEB=your_web_client_id
-    GITHUB_CLIENT_SECRET_WEB=your_web_client_secret
-    GITHUB_CLIENT_ID_EXPO_GO=your_expo_go_client_id
-    GITHUB_CLIENT_SECRET_EXPO_GO=your_expo_go_client_secret
+   GITHUB_CLIENT_ID=<native-client-id>
+   GITHUB_CLIENT_SECRET=<native-client-secret>
+   GITHUB_CLIENT_ID_WEB=<web-client-id>
+   GITHUB_CLIENT_SECRET_WEB=<web-client-secret>
    ```
-
-   `GITHUB_CLIENT_ID_WEB` in the worker must match `webGithubClientId` used by the app.
-   `GITHUB_CLIENT_ID_EXPO_GO` in the worker must match `expoGoGithubClientId` used by the app.
 
 4. **Deploy the worker:**
 
@@ -161,28 +152,26 @@ The web OAuth flow uses a Cloudflare Worker to securely exchange OAuth tokens wi
 
 5. **The worker will be deployed at:** `https://awesomegithubapp-api.involvex.workers.dev`
 
-**Important:** The GitHub OAuth callback URL should be set to your **app's** callback (e.g., `http://localhost:8081/oauth/callback` or `awesomegithubapp://oauth/callback`), NOT the Worker URL. The Worker is only used internally by your app to exchange the authorization code for an access token.
-
-**Note:** Never commit the `.env` file to a public repository. For production, use Cloudflare secrets instead of `.env`:
+**For production,** use Cloudflare secrets instead of `.env`:
 
 ```bash
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put GITHUB_CLIENT_ID_WEB
 wrangler secret put GITHUB_CLIENT_SECRET_WEB
-wrangler secret put GITHUB_CLIENT_ID_EXPO_GO
-wrangler secret put GITHUB_CLIENT_SECRET_EXPO_GO
 bun run deploy:prod
 ```
 
 ### 3. Run
 
 ```bash
-bun run start          # Expo dev server (scan with Expo Go)
 bun run android        # Build + run on Android device/emulator
 bun run ios            # Build + run on iOS simulator
-bun run web            # Web preview
+bun run web            # Web preview in browser
+bun run start          # Expo dev server (requires a dev client build)
 ```
 
-For native OAuth with `awesomegithubapp://oauth/callback`, use a development build (`bun run android` / `bun run ios`) instead of Expo Go. If you must use Expo Go, configure a separate OAuth app with callback `https://auth.expo.io/@involvex/awesome-github-app` and set `GITHUB_CLIENT_ID_EXPO_GO`.
+> Native OAuth requires a **development build** (`bun run android` / `bun run ios`). Expo Go is not supported.
 
 ---
 
