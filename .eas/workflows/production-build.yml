@@ -11,11 +11,6 @@ jobs:
       platform: android
       profile: production
     env:
-      EXPO_GITHUB_CLIENT_ID: ${{ secrets.EXPO_GITHUB_CLIENT_ID }}
-      EXPO_GITHUB_SECRET: ${{ secrets.EXPO_GITHUB_SECRET }}
-      EXPO_GITHUB_CLIENT_ID_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_ID_WEB }}
-      EXPO_GITHUB_CLIENT_SECRET_WEB: ${{ secrets.EXPO_GITHUB_CLIENT_SECRET_WEB }}
-      EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL: ${{ secrets.EXPO_GITHUB_WEB_TOKEN_EXCHANGE_URL }}
       ENVIRONMENT: production
 
   post_build:
