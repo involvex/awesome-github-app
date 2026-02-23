@@ -24,11 +24,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "versionCode": 1
     },
     "web": {
       "output": "single",
       "favicon": "./assets/icon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.involvex.awesomegithubapp",
+      "buildNumber": "1"
     },
     "extra": {
       "oauth": {
