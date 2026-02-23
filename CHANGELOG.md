@@ -1,4 +1,11 @@
-## 0.0.2 (2026-02-23)
+## [0.0.3](https://github.com/involvex/awesome-github-app/compare/v0.0.2...v0.0.3) (2026-02-23)
+
+### Features
+
+- **feed:** replace chip filters with modal-based filter selection ([670ab60](https://github.com/involvex/awesome-github-app/commit/670ab603be86e9c4b30ec861faeb3023fa8e26bf))
+- **ios:** add ITSAppUsesNonExemptEncryption to iOS infoPlist for App Store compliance ([3d99863](https://github.com/involvex/awesome-github-app/commit/3d998631fc4120b6300b77e9ac8eb2c3273272d5))
+
+## [0.0.2](https://github.com/involvex/awesome-github-app/compare/b2fedb7ae362f4368cdde7d8c920355d8f4a10ec...v0.0.2) (2026-02-23)
 
 ### Bug Fixes
 
