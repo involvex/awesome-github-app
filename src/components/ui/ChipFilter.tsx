@@ -48,15 +48,16 @@ export function ChipFilter<T extends string>({
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    alignItems: "center",
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
   },
-  chipText: { fontSize: 13, fontWeight: "600" },
+  chipText: { fontSize: 12, fontWeight: "600" },
 });

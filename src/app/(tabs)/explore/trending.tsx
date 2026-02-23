@@ -125,16 +125,18 @@ export default function TrendingScreen() {
         </Pressable>
       </View>
 
-      <ChipFilter
-        options={PERIODS}
-        value={period}
-        onChange={setPeriod}
-      />
-      <ChipFilter
-        options={LANGUAGES}
-        value={language}
-        onChange={setLanguage}
-      />
+      <View style={styles.filters}>
+        <ChipFilter
+          options={PERIODS}
+          value={period}
+          onChange={setPeriod}
+        />
+        <ChipFilter
+          options={LANGUAGES}
+          value={language}
+          onChange={setLanguage}
+        />
+      </View>
 
       {isLoading ? (
         <FlatList
@@ -188,6 +190,7 @@ const styles = StyleSheet.create({
   },
   back: { padding: 4 },
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "800" },
+  filters: { gap: 4, paddingTop: 8 },
   list: { padding: 16, gap: 12 },
   card: {
     borderRadius: 12,
