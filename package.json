@@ -30,7 +30,9 @@
     "native:sync": "expo prebuild --no-install",
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "expo:prebuild": "bun run prebuild && expo prebuild",
+    "go": "bun run prebuild && bunx expo start --go -c"
   },
   "overrides": {
     "expo-image": "~55.0.4"
