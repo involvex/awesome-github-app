@@ -1,3 +1,9 @@
+## [0.0.4](https://github.com/involvex/awesome-github-app/compare/v0.0.3...v0.0.4) (2026-02-25)
+
+### Bug Fixes
+
+- remove sensitive data from OAuth logs and update build trigger ([ec69370](https://github.com/involvex/awesome-github-app/commit/ec69370e95ce23c7a95def0574f1d86d32040b88))
+
 ## [0.0.3](https://github.com/involvex/awesome-github-app/compare/v0.0.2...v0.0.3) (2026-02-23)
 
 ### Features
