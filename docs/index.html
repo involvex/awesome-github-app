@@ -64,11 +64,13 @@
 
       .glass {
         background: rgba(255, 255, 255, 0.7);
+        -webkit-backdrop-filter: blur(12px);
         backdrop-filter: blur(12px);
       }
 
       .dark .glass {
         background: rgba(15, 23, 42, 0.7);
+        -webkit-backdrop-filter: blur(12px);
         backdrop-filter: blur(12px);
       }
 
@@ -80,6 +82,7 @@
           #1d4ed8 100%
         );
         -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
       }
 
@@ -121,6 +124,7 @@
       };
     </script>
   </head>
+
   <body
     class="bg-slate-50 text-slate-900 transition-colors duration-500 dark:bg-darkBg dark:text-slate-200"
   >
@@ -162,6 +166,7 @@
           >
           <a
             href="https://github.com/involvex/awesome-github-app"
+            rel="noopener noreferrer"
             target="_blank"
             class="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
           >
@@ -247,7 +252,7 @@
               ></i>
               <span>Get Started</span>
               <div
-                class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full"
+                class="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full"
               ></div>
             </a>
             <a
@@ -332,7 +337,7 @@
 
           <div class="grid gap-10 md:grid-cols-2">
             <div
-              class="card-hover group relative rounded-[32px] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
+              class="card-hover group relative rounded-4xl border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
             >
               <div
                 class="absolute top-0 right-0 h-32 w-32 -translate-y-4 translate-x-4 rounded-full bg-primary-500/5 blur-3xl transition-opacity group-hover:opacity-100"
@@ -399,7 +404,7 @@
             </div>
 
             <div
-              class="card-hover group relative rounded-[32px] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
+              class="card-hover group relative rounded-4xl border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-darkCard"
             >
               <h3
                 class="mb-6 text-2xl font-black flex items-center gap-3 text-slate-900 dark:text-white"
@@ -528,7 +533,7 @@
           </div>
 
           <div
-            class="mt-12 overflow-hidden rounded-[32px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-darkCard"
+            class="mt-12 overflow-hidden rounded-4xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-darkCard"
           >
             <div
               class="flex items-center gap-4 border-b border-slate-200 bg-slate-50/50 px-8 py-4 dark:border-slate-800 dark:bg-slate-800/50"
@@ -632,7 +637,7 @@
             ></div>
 
             <div
-              class="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[32px] bg-white text-slate-900"
+              class="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-4xl bg-white text-slate-900"
             >
               <i
                 data-lucide="heart"
@@ -651,6 +656,7 @@
             <div class="grid gap-6 md:grid-cols-3">
               <a
                 href="https://github.com/sponsors/involvex"
+                rel="noopener noreferrer"
                 target="_blank"
                 class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
               >
@@ -665,6 +671,7 @@
               </a>
               <a
                 href="https://buymeacoffee.com/involvex"
+                rel="noopener noreferrer"
                 target="_blank"
                 class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
               >
@@ -680,6 +687,7 @@
               <a
                 href="https://paypal.me/involvex"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="group flex flex-col items-center rounded-3xl bg-white/10 p-8 transition-all hover:bg-white/20 hover:scale-105"
               >
                 <i
@@ -696,6 +704,7 @@
             <div class="mt-12 text-white/40">
               <a
                 href="https://rewards.bing.com/welcome?rh=14525F68&ref=rafsrchae&form=ML2XE3&OCID=ML2XE3&PUBL=RewardsDO&CREA=ML2XE3"
+                rel="noopener noreferrer"
                 target="_blank"
                 class="text-sm font-medium hover:text-white transition-colors underline decoration-white/20 underline-offset-4"
               >
@@ -711,6 +720,7 @@
       <div class="mx-auto max-w-6xl px-6 text-center">
         <div class="mb-8 flex justify-center gap-6">
           <a
+            title="link"
             href="#"
             class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             ><i
@@ -719,6 +729,7 @@
             ></i
           ></a>
           <a
+            title="link"
             href="#"
             class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             ><i
@@ -727,6 +738,7 @@
             ></i
           ></a>
           <a
+            title="link"
             href="#"
             class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             ><i
