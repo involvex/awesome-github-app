@@ -24,6 +24,7 @@ export { Slider } from "./Slider";
 export { Alert } from "./Alert";
 export { Progress } from "./Progress";
 export { Header } from "./Header";
+export { Markdown } from "./Markdown";
 
 // Export types
 export type { ButtonVariant, ButtonSize } from "./Button";

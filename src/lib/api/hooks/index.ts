@@ -3,6 +3,7 @@ export { useTrending, type TrendingPeriod } from "./useTrending";
 export {
   useRepo,
   useRepoTopics,
+  useRepoReadme,
   useUpdateRepo,
   useUpdateTopics,
 } from "./useRepo";

@@ -62,11 +62,8 @@
       "__tests__/test-utils"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(@react-native|react-native|expo(nent)?|expo-modules-core|expo-status-bar|expo-font|expo-asset|@expo|expo-router|@unimodules|@react-navigation|@tanstack|@expo/vector-icons|react-native-reanimated|react-native-gesture-handler|@octokit|universal-user-agent|before-after-hook|is-plain-object)/)"
+      "node_modules/(?!(@react-native|react-native|expo(nent)?|expo-.*|expo-modules-core|expo-status-bar|expo-font|expo-asset|@expo|expo-router|@unimodules|@react-navigation|@tanstack|@expo/vector-icons|react-native-reanimated|react-native-gesture-handler|@octokit|universal-user-agent|before-after-hook|is-plain-object)/)"
     ]
-  },
-  "overrides": {
-    "minimatch": ">=10.2.1"
   },
   "dependencies": {
     "@expo/config": "^55.0.1",
@@ -86,6 +83,7 @@
     "expo-font": "~55.0.4",
     "expo-image": "~55.0.5",
     "expo-linking": "~55.0.7",
+    "expo-notifications": "~55.0.10",
     "expo-router": "~55.0.0",
     "expo-secure-store": "~55.0.8",
     "expo-splash-screen": "~55.0.9",
@@ -99,6 +97,7 @@
     "react-dom": "19.2.0",
     "react-native": "0.83.2",
     "react-native-gesture-handler": "~2.30.0",
+    "react-native-markdown-display": "^7.0.2",
     "react-native-reanimated": "~4.2.1",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.24.0",
@@ -117,6 +116,7 @@
     "globals": "^17.3.0",
     "jest": "~29.7.0",
     "jest-expo": "~55.0.9",
+    "minimatch": "9.0.5",
     "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-packagejson": "^3.0.0",

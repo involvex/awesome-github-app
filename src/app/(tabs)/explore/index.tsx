@@ -265,6 +265,27 @@ export default function ExploreScreen() {
                 color={theme.muted}
               />
             </Pressable>
+            <Pressable
+              style={[
+                styles.trendBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => router.push("/(tabs)/explore/languages")}
+            >
+              <Ionicons
+                name="code-slash"
+                size={22}
+                color="#3178c6"
+              />
+              <Text style={[styles.trendBtnText, { color: theme.text }]}>
+                Browse Languages
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={theme.muted}
+              />
+            </Pressable>
           </View>
 
           <Text style={[styles.sectionTitle, { color: theme.text }]}>

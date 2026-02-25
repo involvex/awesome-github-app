@@ -80,6 +80,15 @@ jest.mock("react-native-reanimated", () =>
   require("react-native-reanimated/mock"),
 );
 
+jest.mock("expo-notifications", () => ({
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  setNotificationChannelAsync: jest.fn().mockResolvedValue(null),
+  AndroidImportance: {
+    MAX: 4,
+  },
+}));
+
 const { notifyManager } = require("@tanstack/query-core");
 notifyManager.setBatchNotifyFunction(fn => fn());
 

@@ -5,6 +5,7 @@ import {
   Text,
   View,
   Pressable,
+  Linking,
 } from "react-native";
 import { SegmentedControl } from "../../../components/ui/SegmentedControl";
 import { SettingsRow } from "../../../components/ui/SettingsRow";
@@ -149,7 +150,9 @@ export default function SettingsScreen() {
           icon="mail-outline"
           label="Email notifications"
           value="Manage on GitHub"
-          onPress={() => {}}
+          onPress={() =>
+            Linking.openURL("https://github.com/settings/notifications")
+          }
         />
       </Section>
 
@@ -197,12 +200,16 @@ export default function SettingsScreen() {
           icon="lock-closed-outline"
           label="Two-factor authentication"
           value="Manage on GitHub"
-          onPress={() => {}}
+          onPress={() =>
+            Linking.openURL("https://github.com/settings/security")
+          }
         />
         <SettingsRow
           icon="shield-checkmark-outline"
           label="Authorized apps"
-          onPress={() => {}}
+          onPress={() =>
+            Linking.openURL("https://github.com/settings/applications")
+          }
         />
         <SettingsRow
           icon="analytics-outline"
@@ -257,12 +264,20 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="document-text-outline"
           label="Terms of Service"
-          onPress={() => {}}
+          onPress={() =>
+            Linking.openURL(
+              "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+            )
+          }
         />
         <SettingsRow
           icon="lock-closed-outline"
           label="Privacy Policy"
-          onPress={() => {}}
+          onPress={() =>
+            Linking.openURL(
+              "https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement",
+            )
+          }
         />
         <SettingsRow
           icon="code-working-outline"

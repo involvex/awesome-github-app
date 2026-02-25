@@ -66,3 +66,30 @@ export function useUpdateTopics(owner: string, repo: string) {
       qc.invalidateQueries({ queryKey: ["repo", owner, repo, "topics"] }),
   });
 }
+
+export function useRepoReadme(owner: string, repo: string) {
+  return useQuery({
+    queryKey: ["repo", owner, repo, "readme"],
+    queryFn: async () => {
+      const octokit = await getOctokit();
+      const response = await octokit.repos.getReadme({
+        owner,
+        repo,
+      });
+      const data = response.data as {
+        content: string;
+        encoding: string;
+      };
+
+      if (data.encoding === "base64") {
+        // Decode base64 in React Native/Web
+        const decoded = decodeURIComponent(
+          escape(atob(data.content.replace(/\n/g, ""))),
+        );
+        return decoded;
+      }
+      return data.content;
+    },
+    enabled: !!(owner && repo),
+  });
+}

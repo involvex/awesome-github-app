@@ -3,11 +3,37 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../contexts/ToastContext";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { queryClient } from "../lib/api/queryClient";
+import * as Notifications from "expo-notifications";
 import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    async function requestPermissions() {
+      if (Platform.OS === "web") return;
+
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      if (existingStatus !== "granted") {
+        await Notifications.requestPermissionsAsync();
+      }
+
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+        });
+      }
+    }
+
+    requestPermissions();
+  }, []);
 
   if (isLoading) return null;
 
