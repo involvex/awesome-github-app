@@ -33,7 +33,7 @@ export function Markdown({ children }: MarkdownProps) {
           key={node.key}
           source={{ uri: src }}
           style={[
-            styles.image,
+            styles.image as ImageStyle,
             { maxWidth: "100%", height: "auto", minHeight: 20 },
           ]}
           contentFit="contain"
