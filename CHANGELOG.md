@@ -1,8 +1,10 @@
-## [0.0.4](https://github.com/involvex/awesome-github-app/compare/v0.0.3...v0.0.4) (2026-02-25)
+## [0.0.5](https://github.com/involvex/awesome-github-app/compare/v0.0.3...v0.0.5) (2026-02-27)
 
 ### Bug Fixes
 
 - remove sensitive data from OAuth logs and update build trigger ([ec69370](https://github.com/involvex/awesome-github-app/commit/ec69370e95ce23c7a95def0574f1d86d32040b88))
+- **ui:** resolve React 19 key spread error and improve Markdown README layout ([5748df7](https://github.com/involvex/awesome-github-app/commit/5748df795b2b0c17983e8f5b7fb8c6ae78686215))
+- **ui:** use proper types in Markdown image rule to resolve ESLint warnings ([5509e7b](https://github.com/involvex/awesome-github-app/commit/5509e7b145332bc4afd4635f1806f0c2479b9607))
 
 ## [0.0.3](https://github.com/involvex/awesome-github-app/compare/v0.0.2...v0.0.3) (2026-02-23)
 
