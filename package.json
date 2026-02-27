@@ -62,7 +62,7 @@
       "__tests__/test-utils"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(@react-native|react-native|expo(nent)?|expo-.*|expo-modules-core|expo-status-bar|expo-font|expo-asset|@expo|expo-router|@unimodules|@react-navigation|@tanstack|@expo/vector-icons|react-native-reanimated|react-native-gesture-handler|@octokit|universal-user-agent|before-after-hook|is-plain-object)/)"
+      "node_modules/(?!(@react-native|react-native|expo(nent)?|expo-.*|expo-modules-core|expo-status-bar|expo-font|expo-asset|@expo|expo-router|@unimodules|@react-navigation|@tanstack|@expo/vector-icons|react-native-reanimated|react-native-gesture-handler|@octokit|universal-user-agent|before-after-hook|is-plain-object|react-native-markdown-display)/)"
     ]
   },
   "dependencies": {

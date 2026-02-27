@@ -1,6 +1,7 @@
 import MarkdownDisplay from "react-native-markdown-display";
 import { StyleSheet, View } from "react-native";
 import { useAppTheme } from "../../lib/theme";
+import { Image } from "expo-image";
 
 interface MarkdownProps {
   children: string;
@@ -8,6 +9,24 @@ interface MarkdownProps {
 
 export function Markdown({ children }: MarkdownProps) {
   const theme = useAppTheme();
+
+  const rules = {
+    image: (node: any, children: any, parent: any, styles: any) => {
+      const { src, alt } = node.attributes;
+      return (
+        <Image
+          key={node.key}
+          source={{ uri: src }}
+          style={[
+            styles.image,
+            { maxWidth: "100%", height: "auto", minHeight: 20 },
+          ]}
+          contentFit="contain"
+          accessibilityLabel={alt}
+        />
+      );
+    },
+  };
 
   const markdownStyles = StyleSheet.create({
     body: {
@@ -43,6 +62,16 @@ export function Markdown({ children }: MarkdownProps) {
     link: {
       color: theme.primary,
       textDecorationLine: "none",
+    },
+    paragraph: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      marginVertical: 4,
+    },
+    image: {
+      marginVertical: 4,
+      marginRight: 6,
     },
     code_inline: {
       backgroundColor: theme.surface,
@@ -106,7 +135,12 @@ export function Markdown({ children }: MarkdownProps) {
 
   return (
     <View style={styles.container}>
-      <MarkdownDisplay style={markdownStyles}>{children}</MarkdownDisplay>
+      <MarkdownDisplay
+        style={markdownStyles}
+        rules={rules}
+      >
+        {children}
+      </MarkdownDisplay>
     </View>
   );
 }
