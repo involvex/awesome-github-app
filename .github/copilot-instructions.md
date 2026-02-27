@@ -15,7 +15,14 @@ bun run web            # Web preview
 bun run native:sync    # Regenerate android/ and ios/ from app.json
 ```
 
-No test suite exists in this project.
+## Testing
+
+```sh
+bun test                          # Run all tests
+bun test path/to/test             # Run a single test file
+bun test -t "test name"           # Run tests matching a pattern
+bun test --watch                  # Watch mode
+```
 
 The `prebuild` script runs `format && lint:fix && typecheck` — these run automatically before `bun run android`.
 
