@@ -1,7 +1,11 @@
-import MarkdownDisplay from "react-native-markdown-display";
+import MarkdownDisplay, {
+  ASTNode,
+  RenderRules,
+} from "react-native-markdown-display";
 import { StyleSheet, View } from "react-native";
 import { useAppTheme } from "../../lib/theme";
 import { Image } from "expo-image";
+import { ReactNode } from "react";
 
 interface MarkdownProps {
   children: string;
@@ -10,8 +14,13 @@ interface MarkdownProps {
 export function Markdown({ children }: MarkdownProps) {
   const theme = useAppTheme();
 
-  const rules = {
-    image: (node: any, children: any, parent: any, styles: any) => {
+  const rules: RenderRules = {
+    image: (
+      node: ASTNode,
+      children: ReactNode[],
+      parent: ASTNode[],
+      styles: Record<string, any>,
+    ) => {
       const { src, alt } = node.attributes;
       return (
         <Image
