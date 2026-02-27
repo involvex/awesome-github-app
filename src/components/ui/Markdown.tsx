@@ -1,8 +1,14 @@
+import {
+  ImageStyle,
+  StyleSheet,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
 import MarkdownDisplay, {
   ASTNode,
   RenderRules,
 } from "react-native-markdown-display";
-import { StyleSheet, View } from "react-native";
 import { useAppTheme } from "../../lib/theme";
 import { Image } from "expo-image";
 import { ReactNode } from "react";
@@ -19,7 +25,7 @@ export function Markdown({ children }: MarkdownProps) {
       node: ASTNode,
       children: ReactNode[],
       parent: ASTNode[],
-      styles: Record<string, any>,
+      styles: Record<string, ViewStyle | TextStyle | ImageStyle>,
     ) => {
       const { src, alt } = node.attributes;
       return (
