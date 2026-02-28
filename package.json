@@ -1,6 +1,6 @@
 {
   "name": "awesome-github-app",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "keywords": [
     "github",
@@ -36,6 +36,7 @@
     "lint": "eslint src --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
     "lint:fix": "eslint --fix src --ignore-pattern .claude --ignore-pattern dist --ignore-pattern build --ignore-pattern workers --ignore-pattern __tests__",
     "native:sync": "expo prebuild --no-install",
+    "release": "powershell -File scripts/release.ps1",
     "start": "expo start",
     "test": "jest",
     "test:ci": "jest --runInBand --ci --coverage",
