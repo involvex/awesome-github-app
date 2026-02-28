@@ -1,4 +1,7 @@
 name: Build & Publish Release APK
+permissions:
+  contents: write
+  id-token: write
 
 on:
   push:
@@ -11,19 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Install dependencies
+        run: bun install
+      - name: Running expo prebuild
+        run: bun run expo:prebuild
       - name: setup jdk
         uses: actions/setup-java@v3
         with:
-          java-version: 21
+          java-version: 17
           distribution: temurin
       - name: Make Gradle executable
         run: chmod +x ./gradlew
       - name: Build Release APK
         run: ./gradlew assembleRelease
-      - name: Releasing using Hub
-        uses: kyze8439690/action-release-releaseapk@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN}}
-          APP_FOLDER: android/app/build/outputs/apk/release
-          APP_NAME: app-release.apk
+
+  Release:
+    needs: Gradle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: app/build/outputs/apk/release/app-release.apk
