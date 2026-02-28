@@ -10,33 +10,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  Gradle:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
       - name: Install dependencies
         run: bun install
       - name: Running expo prebuild
-        run: bun run expo:prebuild
+        run: npx expo prebuild --platform android --no-install
       - name: setup jdk
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: temurin
       - name: Make Gradle executable
         run: chmod +x ./gradlew
+        working-directory: android
       - name: Build Release APK
         run: ./gradlew assembleRelease
-
-  Release:
-    needs: Gradle
-    runs-on: ubuntu-latest
-    steps:
+        working-directory: android
       - name: Release to GitHub
         uses: softprops/action-gh-release@v2
         if: github.ref_type == 'tag'
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: android/app/build/outputs/apk/release/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
