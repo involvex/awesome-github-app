@@ -44,8 +44,16 @@ export function Markdown({ children }: MarkdownProps) {
     },
     // Render HTML blocks as plain text by stripping tags so they don't show
     // as raw markup (react-native-markdown-display does not parse HTML).
+    // Iterative stripping prevents bypass via nested/malformed tags like
+    // <<script>script> which survive a single-pass regex.
     html_block: (node: ASTNode) => {
-      const stripped = (node.content as string).replace(/<[^>]*>/g, "").trim();
+      let s = node.content as string;
+      let prev: string;
+      do {
+        prev = s;
+        s = prev.replace(/<[^>]*>/g, "");
+      } while (s !== prev);
+      const stripped = s.trim();
       if (!stripped) return null;
       return (
         <Text
@@ -57,7 +65,13 @@ export function Markdown({ children }: MarkdownProps) {
       );
     },
     html_inline: (node: ASTNode) => {
-      const stripped = (node.content as string).replace(/<[^>]*>/g, "").trim();
+      let s = node.content as string;
+      let prev: string;
+      do {
+        prev = s;
+        s = prev.replace(/<[^>]*>/g, "");
+      } while (s !== prev);
+      const stripped = s.trim();
       if (!stripped) return null;
       return (
         <Text
