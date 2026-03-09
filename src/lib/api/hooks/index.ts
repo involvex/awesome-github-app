@@ -4,8 +4,10 @@ export {
   useRepo,
   useRepoTopics,
   useRepoReadme,
+  useRepoContents,
   useUpdateRepo,
   useUpdateTopics,
+  useCreateFork,
 } from "./useRepo";
 export {
   useNotifications,

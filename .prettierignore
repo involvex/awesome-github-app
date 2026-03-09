@@ -19,3 +19,5 @@ packages/app/out
 .kilocode
 packages/app/android/.gradle
 docs/Expo
+builds
+coverage

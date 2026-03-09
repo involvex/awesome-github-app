@@ -3,6 +3,7 @@ import {
   Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -11,16 +12,20 @@ import {
   useRepo,
   useRepoTopics,
   useRepoReadme,
+  useRepoContents,
+  useCreateFork,
 } from "../../../../lib/api/hooks";
 import { LanguageDot } from "../../../../components/ui/LanguageDot";
 import { Markdown } from "../../../../components/ui/Markdown";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useToast } from "../../../../contexts/ToastContext";
+import { useAuth } from "../../../../contexts/AuthContext";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { useAppTheme } from "../../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
-const TABS = ["About", "Issues", "PRs", "Actions", "Branches"] as const;
+const TABS = ["About", "Code", "Issues", "PRs", "Actions", "Branches"] as const;
 type RepoTab = (typeof TABS)[number];
 
 function AboutTab({ owner, repo }: { owner: string; repo: string }) {
@@ -165,6 +170,134 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
   );
 }
 
+function CodeTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const [currentPath, setCurrentPath] = useState("");
+  const { data, isLoading } = useRepoContents(owner, repo, currentPath);
+
+  const pathParts = currentPath ? currentPath.split("/") : [];
+
+  function formatSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      {/* Breadcrumb */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.breadcrumb}
+        contentContainerStyle={styles.breadcrumbContent}
+      >
+        <Pressable onPress={() => setCurrentPath("")}>
+          <Text style={[styles.breadcrumbPart, { color: theme.primary }]}>
+            {repo}
+          </Text>
+        </Pressable>
+        {pathParts.map((part, i) => (
+          <View
+            key={i}
+            style={styles.breadcrumbItem}
+          >
+            <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>
+              {" / "}
+            </Text>
+            <Pressable
+              onPress={() =>
+                setCurrentPath(pathParts.slice(0, i + 1).join("/"))
+              }
+            >
+              <Text
+                style={[
+                  styles.breadcrumbPart,
+                  {
+                    color:
+                      i === pathParts.length - 1 ? theme.text : theme.primary,
+                  },
+                ]}
+              >
+                {part}
+              </Text>
+            </Pressable>
+          </View>
+        ))}
+      </ScrollView>
+
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        {isLoading ? (
+          <ActivityIndicator
+            color={theme.primary}
+            style={{ marginVertical: 20 }}
+          />
+        ) : !data?.length ? (
+          <Text style={[styles.emptyText, { color: theme.subtle }]}>
+            This directory is empty.
+          </Text>
+        ) : (
+          <>
+            {/* Directories first, then files */}
+            {[
+              ...data.filter(f => f.type === "dir"),
+              ...data.filter(f => f.type !== "dir"),
+            ].map((item, idx, arr) => (
+              <Pressable
+                key={item.sha + item.path}
+                style={[
+                  styles.fileRow,
+                  idx < arr.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: theme.border,
+                  },
+                ]}
+                onPress={() => {
+                  if (item.type === "dir") {
+                    setCurrentPath(item.path);
+                  } else if (item.html_url) {
+                    Linking.openURL(item.html_url);
+                  }
+                }}
+              >
+                <Ionicons
+                  name={item.type === "dir" ? "folder" : "document-outline"}
+                  size={16}
+                  color={item.type === "dir" ? "#e3b341" : theme.subtle}
+                  style={styles.fileIcon}
+                />
+                <Text
+                  style={[styles.fileName, { color: theme.text }]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                {item.type !== "dir" && item.size > 0 && (
+                  <Text style={[styles.fileSize, { color: theme.muted }]}>
+                    {formatSize(item.size)}
+                  </Text>
+                )}
+                {item.type === "dir" && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color={theme.muted}
+                  />
+                )}
+              </Pressable>
+            ))}
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function ComingSoonTab({
   name,
   icon,
@@ -209,8 +342,31 @@ export default function RepoDetailScreen() {
   }>();
   const theme = useAppTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const { data, isLoading } = useRepo(owner!, repo!);
   const [activeTab, setActiveTab] = useState<RepoTab>("About");
+  const forkMutation = useCreateFork(owner!, repo!);
+
+  const isOwner = !!data && !!user && data.owner.login === user.login;
+
+  async function handleShare() {
+    if (!data) return;
+    try {
+      await Share.share({ message: data.html_url });
+    } catch {
+      // share sheet dismissed — ignore
+    }
+  }
+
+  async function handleFork() {
+    try {
+      await forkMutation.mutateAsync();
+      showToast("Fork created successfully!", "success");
+    } catch {
+      showToast("Failed to create fork. Please try again.", "error");
+    }
+  }
 
   if (isLoading || !data) {
     return (
@@ -271,22 +427,24 @@ export default function RepoDetailScreen() {
           </View>
 
           <View style={styles.actionRow}>
-            <Pressable
-              style={[
-                styles.actionBtn,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-              onPress={() => router.push(`/repo/${owner}/${repo}/settings`)}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={16}
-                color={theme.text}
-              />
-              <Text style={[styles.actionBtnText, { color: theme.text }]}>
-                Settings
-              </Text>
-            </Pressable>
+            {isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => router.push(`/repo/${owner}/${repo}/settings`)}
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={16}
+                  color={theme.text}
+                />
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Settings
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={[
                 styles.actionBtn,
@@ -303,22 +461,66 @@ export default function RepoDetailScreen() {
                 Actions
               </Text>
             </Pressable>
+            {isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => router.push(`/repo/${owner}/${repo}/pages`)}
+              >
+                <Ionicons
+                  name="globe-outline"
+                  size={16}
+                  color={theme.primary}
+                />
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Pages
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={[
                 styles.actionBtn,
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
-              onPress={() => router.push(`/repo/${owner}/${repo}/pages`)}
+              onPress={handleShare}
             >
               <Ionicons
-                name="globe-outline"
+                name="share-outline"
                 size={16}
-                color={theme.primary}
+                color={theme.text}
               />
               <Text style={[styles.actionBtnText, { color: theme.text }]}>
-                Pages
+                Share
               </Text>
             </Pressable>
+            {!isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={handleFork}
+                disabled={forkMutation.isPending}
+              >
+                {forkMutation.isPending ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.primary}
+                  />
+                ) : (
+                  <Ionicons
+                    name="git-branch-outline"
+                    size={16}
+                    color={theme.primary}
+                  />
+                )}
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Fork
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -364,6 +566,12 @@ export default function RepoDetailScreen() {
         {/* Tab Content */}
         {activeTab === "About" && (
           <AboutTab
+            owner={owner!}
+            repo={repo!}
+          />
+        )}
+        {activeTab === "Code" && (
+          <CodeTab
             owner={owner!}
             repo={repo!}
           />
@@ -595,4 +803,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1,
   },
+  breadcrumb: { marginBottom: 8 },
+  breadcrumbContent: { flexDirection: "row", alignItems: "center" },
+  breadcrumbItem: { flexDirection: "row", alignItems: "center" },
+  breadcrumbPart: { fontSize: 14, fontWeight: "600" },
+  breadcrumbSep: { fontSize: 14 },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 10,
+  },
+  fileIcon: { width: 18 },
+  fileName: { flex: 1, fontSize: 14 },
+  fileSize: { fontSize: 12 },
 });

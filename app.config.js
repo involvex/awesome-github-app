@@ -6,10 +6,24 @@ dotenv.config({ quiet: true });
 
 /** @param {import("expo/config").ConfigContext} param0 */
 module.exports = ({ config }) => {
+  const isDebug = process.env.APP_VARIANT === "debug";
   const oauthConfig = config.extra?.oauth ?? {};
 
   return {
     ...config,
+    name: isDebug ? "Awesome GH (Debug)" : config.name,
+    android: {
+      ...config.android,
+      package: isDebug
+        ? "com.involvex.awesomegithubapp.debug"
+        : config.android?.package,
+    },
+    ios: {
+      ...config.ios,
+      bundleIdentifier: isDebug
+        ? "com.involvex.awesomegithubapp.debug"
+        : config.ios?.bundleIdentifier,
+    },
     extra: {
       ...config.extra,
       oauth: {

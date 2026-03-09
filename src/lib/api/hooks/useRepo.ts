@@ -67,6 +67,40 @@ export function useUpdateTopics(owner: string, repo: string) {
   });
 }
 
+export function useRepoContents(
+  owner: string,
+  repo: string,
+  path: string = "",
+) {
+  return useQuery({
+    queryKey: ["repo", owner, repo, "contents", path],
+    queryFn: async () => {
+      const octokit = await getOctokit();
+      const { data } = await octokit.repos.getContent({ owner, repo, path });
+      // getContent returns array for directories, single object for files
+      return (Array.isArray(data) ? data : [data]) as Array<{
+        name: string;
+        path: string;
+        type: "file" | "dir" | "symlink" | "submodule";
+        size: number;
+        sha: string;
+        html_url: string | null;
+      }>;
+    },
+    enabled: !!(owner && repo),
+  });
+}
+
+export function useCreateFork(owner: string, repo: string) {
+  return useMutation({
+    mutationFn: async () => {
+      const octokit = await getOctokit();
+      const { data } = await octokit.repos.createFork({ owner, repo });
+      return data;
+    },
+  });
+}
+
 export function useRepoReadme(owner: string, repo: string) {
   return useQuery({
     queryKey: ["repo", owner, repo, "readme"],
