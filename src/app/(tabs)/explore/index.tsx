@@ -137,10 +137,13 @@ export default function ExploreScreen() {
   const activeFiltersCount =
     (sortBy !== "best-match" ? 1 : 0) + (language ? 1 : 0) + (starsMin ? 1 : 0);
 
-  const { data, isLoading } = useSearch(effectiveQuery, "repositories", {
-    sort: sortBy === "best-match" ? undefined : sortBy,
-    order: "desc",
-  });
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useSearch(effectiveQuery, "repositories", {
+      sort: sortBy === "best-match" ? undefined : sortBy,
+      order: "desc",
+    });
+
+  const repos = data?.pages.flatMap(p => p as SearchRepoItem[]) ?? [];
 
   useEffect(() => {
     if (incomingQuery) {
@@ -298,13 +301,23 @@ export default function ExploreScreen() {
             />
           ) : (
             <FlatList
-              data={data as SearchRepoItem[]}
+              data={repos}
               keyExtractor={item => String(item.id)}
               renderItem={({ item }) => <RepoRow item={item} />}
               contentContainerStyle={
-                (data as SearchRepoItem[] | undefined)?.length === 0
-                  ? styles.listEmptyContainer
-                  : undefined
+                repos.length === 0 ? styles.listEmptyContainer : undefined
+              }
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+              }}
+              onEndReachedThreshold={0.3}
+              ListFooterComponent={
+                isFetchingNextPage ? (
+                  <ActivityIndicator
+                    style={{ paddingVertical: 16 }}
+                    color={theme.primary}
+                  />
+                ) : null
               }
               ListEmptyComponent={
                 <View style={styles.emptyState}>

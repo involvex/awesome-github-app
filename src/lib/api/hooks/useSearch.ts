@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Octokit } from "@octokit/rest";
 import { getOctokit } from "../github";
 
@@ -28,14 +28,15 @@ export function useSearch(
   options: SearchOptions = {},
 ) {
   const { sort, order = "desc" } = options;
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["search", type, query, sort ?? "best-match", order],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const octokit = await getOctokit();
       if (type === "repositories") {
         const { data } = await octokit.search.repos({
           q: query,
           per_page: 30,
+          page: pageParam,
           ...(sort ? { sort, order } : {}),
         });
         return data.items;
@@ -43,6 +44,7 @@ export function useSearch(
         const { data } = await octokit.search.users({
           q: query,
           per_page: 30,
+          page: pageParam,
           sort: "followers",
           order: "desc",
         });
@@ -51,10 +53,14 @@ export function useSearch(
         const { data } = await octokit.search.issuesAndPullRequests({
           q: query,
           per_page: 30,
+          page: pageParam,
         });
         return data.items;
       }
     },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === 30 ? (lastPageParam as number) + 1 : undefined,
     enabled: query.length >= 2,
     staleTime: 30 * 1000,
   });

@@ -68,6 +68,43 @@ export function useDispatchWorkflow(owner: string, repo: string) {
   });
 }
 
+export function useRunArtifacts(
+  owner: string,
+  repo: string,
+  runId: number | null,
+) {
+  return useQuery({
+    queryKey: ["runArtifacts", owner, repo, runId],
+    queryFn: async () => {
+      const octokit = await getOctokit();
+      const { data } = await octokit.actions.listWorkflowRunArtifacts({
+        owner,
+        repo,
+        run_id: runId!,
+        per_page: 100,
+      });
+      return data.artifacts;
+    },
+    enabled: !!(owner && repo && runId),
+  });
+}
+
+export function useDownloadArtifact(owner: string, repo: string) {
+  return useMutation({
+    mutationFn: async (artifactId: number) => {
+      const octokit = await getOctokit();
+      const response = await octokit.actions.downloadArtifact({
+        owner,
+        repo,
+        artifact_id: artifactId,
+        archive_format: "zip",
+        request: { redirect: "follow" },
+      });
+      return (response as { url: string }).url;
+    },
+  });
+}
+
 export function useCancelRun(owner: string, repo: string) {
   const qc = useQueryClient();
   return useMutation({

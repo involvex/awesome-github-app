@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { getOctokit } from "../github";
 
 export function useRepo(owner: string, repo: string) {
@@ -124,6 +129,26 @@ export function useRepoReadme(owner: string, repo: string) {
       }
       return data.content;
     },
+    enabled: !!(owner && repo),
+  });
+}
+
+export function useBranches(owner: string, repo: string) {
+  return useInfiniteQuery({
+    queryKey: ["repo", owner, repo, "branches"],
+    queryFn: async ({ pageParam }) => {
+      const octokit = await getOctokit();
+      const { data } = await octokit.repos.listBranches({
+        owner,
+        repo,
+        per_page: 30,
+        page: pageParam,
+      });
+      return data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === 30 ? (lastPageParam as number) + 1 : undefined,
     enabled: !!(owner && repo),
   });
 }

@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  FlatList,
   Linking,
   Pressable,
   ScrollView,
@@ -14,6 +15,7 @@ import {
   useRepoReadme,
   useRepoContents,
   useCreateFork,
+  useBranches,
 } from "../../../../lib/api/hooks";
 import { LanguageDot } from "../../../../components/ui/LanguageDot";
 import { Markdown } from "../../../../components/ui/Markdown";
@@ -295,6 +297,99 @@ function CodeTab({ owner, repo }: { owner: string; repo: string }) {
         )}
       </View>
     </View>
+  );
+}
+
+function BranchesTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const { data: repoData } = useRepo(owner, repo);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useBranches(owner, repo);
+
+  const branches = data?.pages.flatMap(p => p) ?? [];
+  const defaultBranch = repoData?.default_branch;
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        style={{ flex: 1, padding: 32 }}
+        color={theme.primary}
+      />
+    );
+  }
+
+  return (
+    <FlatList
+      data={branches}
+      keyExtractor={item => item.name}
+      contentContainerStyle={styles.tabContent}
+      onEndReached={() => {
+        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+      }}
+      onEndReachedThreshold={0.3}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <ActivityIndicator
+            style={{ paddingVertical: 16 }}
+            color={theme.primary}
+          />
+        ) : null
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="git-branch-outline"
+            size={32}
+            color={theme.muted}
+          />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No branches
+          </Text>
+        </View>
+      }
+      renderItem={({ item }) => (
+        <View
+          style={[
+            styles.branchRow,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <Ionicons
+            name="git-branch-outline"
+            size={16}
+            color={theme.muted}
+          />
+          <Text
+            style={[styles.branchName, { color: theme.text }]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          {item.name === defaultBranch && (
+            <View
+              style={[
+                styles.branchBadge,
+                {
+                  backgroundColor: theme.primary + "20",
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Text style={[styles.branchBadgeText, { color: theme.primary }]}>
+                default
+              </Text>
+            </View>
+          )}
+          {item.protected && (
+            <Ionicons
+              name="lock-closed-outline"
+              size={14}
+              color={theme.muted}
+            />
+          )}
+        </View>
+      )}
+    />
   );
 }
 
@@ -646,9 +741,9 @@ export default function RepoDetailScreen() {
           />
         )}
         {activeTab === "Branches" && (
-          <ComingSoonTab
-            name="Branches"
-            icon="git-branch-outline"
+          <BranchesTab
+            owner={owner!}
+            repo={repo!}
           />
         )}
       </ScrollView>
@@ -802,6 +897,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
+  },
+  branchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  branchName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  branchBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  branchBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   breadcrumb: { marginBottom: 8 },
   breadcrumbContent: { flexDirection: "row", alignItems: "center" },

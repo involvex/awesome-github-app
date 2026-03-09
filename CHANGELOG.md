@@ -1,3 +1,9 @@
+## [0.0.10](https://github.com/involvex/awesome-github-app/compare/0.0.9...0.0.10) (2026-03-09)
+
+### Features
+
+- add infinite scroll pagination and notification support ([a7557fc](https://github.com/involvex/awesome-github-app/commit/a7557fc8fdb4e39e2ad034baab151da3453ab64d))
+
 ## [0.0.9](https://github.com/involvex/awesome-github-app/compare/0.0.8...0.0.9) (2026-03-09)
 
 ## [0.0.8](https://github.com/involvex/awesome-github-app/compare/0.0.7...0.0.8) (2026-03-09)
