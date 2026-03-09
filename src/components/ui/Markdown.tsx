@@ -1,6 +1,7 @@
 import {
   ImageStyle,
   StyleSheet,
+  Text,
   TextStyle,
   View,
   ViewStyle,
@@ -39,6 +40,32 @@ export function Markdown({ children }: MarkdownProps) {
           contentFit="contain"
           accessibilityLabel={alt}
         />
+      );
+    },
+    // Render HTML blocks as plain text by stripping tags so they don't show
+    // as raw markup (react-native-markdown-display does not parse HTML).
+    html_block: (node: ASTNode) => {
+      const stripped = (node.content as string).replace(/<[^>]*>/g, "").trim();
+      if (!stripped) return null;
+      return (
+        <Text
+          key={node.key}
+          style={{ color: theme.text, fontSize: 15, lineHeight: 22 }}
+        >
+          {stripped}
+        </Text>
+      );
+    },
+    html_inline: (node: ASTNode) => {
+      const stripped = (node.content as string).replace(/<[^>]*>/g, "").trim();
+      if (!stripped) return null;
+      return (
+        <Text
+          key={node.key}
+          style={{ color: theme.text, fontSize: 15 }}
+        >
+          {stripped}
+        </Text>
       );
     },
   };
@@ -96,6 +123,15 @@ export function Markdown({ children }: MarkdownProps) {
       fontFamily: "monospace",
     },
     code_block: {
+      backgroundColor: theme.surface,
+      color: theme.text,
+      borderRadius: 8,
+      padding: 12,
+      fontFamily: "monospace",
+      marginVertical: 10,
+    },
+    // `fence` is used for triple-backtick code blocks; must match code_block
+    fence: {
       backgroundColor: theme.surface,
       color: theme.text,
       borderRadius: 8,
