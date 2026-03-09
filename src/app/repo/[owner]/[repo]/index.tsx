@@ -1,6 +1,13 @@
 import {
+  useRepo,
+  useRepoTopics,
+  useRepoReadme,
+  useRepoContents,
+  useCreateFork,
+  useBranches,
+} from "../../../../lib/api/hooks";
+import {
   ActivityIndicator,
-  FlatList,
   Linking,
   Pressable,
   ScrollView,
@@ -9,14 +16,6 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  useRepo,
-  useRepoTopics,
-  useRepoReadme,
-  useRepoContents,
-  useCreateFork,
-  useBranches,
-} from "../../../../lib/api/hooks";
 import { LanguageDot } from "../../../../components/ui/LanguageDot";
 import { Markdown } from "../../../../components/ui/Markdown";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -319,23 +318,8 @@ function BranchesTab({ owner, repo }: { owner: string; repo: string }) {
   }
 
   return (
-    <FlatList
-      data={branches}
-      keyExtractor={item => item.name}
-      contentContainerStyle={styles.tabContent}
-      onEndReached={() => {
-        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-      }}
-      onEndReachedThreshold={0.3}
-      ListFooterComponent={
-        isFetchingNextPage ? (
-          <ActivityIndicator
-            style={{ paddingVertical: 16 }}
-            color={theme.primary}
-          />
-        ) : null
-      }
-      ListEmptyComponent={
+    <View style={styles.tabContent}>
+      {branches.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons
             name="git-branch-outline"
@@ -346,50 +330,73 @@ function BranchesTab({ owner, repo }: { owner: string; repo: string }) {
             No branches
           </Text>
         </View>
-      }
-      renderItem={({ item }) => (
-        <View
-          style={[
-            styles.branchRow,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <Ionicons
-            name="git-branch-outline"
-            size={16}
-            color={theme.muted}
-          />
-          <Text
-            style={[styles.branchName, { color: theme.text }]}
-            numberOfLines={1}
+      ) : (
+        branches.map(item => (
+          <View
+            key={item.name}
+            style={[
+              styles.branchRow,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
           >
-            {item.name}
-          </Text>
-          {item.name === defaultBranch && (
-            <View
-              style={[
-                styles.branchBadge,
-                {
-                  backgroundColor: theme.primary + "20",
-                  borderColor: theme.primary,
-                },
-              ]}
-            >
-              <Text style={[styles.branchBadgeText, { color: theme.primary }]}>
-                default
-              </Text>
-            </View>
-          )}
-          {item.protected && (
             <Ionicons
-              name="lock-closed-outline"
-              size={14}
+              name="git-branch-outline"
+              size={16}
               color={theme.muted}
             />
-          )}
-        </View>
+            <Text
+              style={[styles.branchName, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            {item.name === defaultBranch && (
+              <View
+                style={[
+                  styles.branchBadge,
+                  {
+                    backgroundColor: theme.primary + "20",
+                    borderColor: theme.primary,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.branchBadgeText, { color: theme.primary }]}
+                >
+                  default
+                </Text>
+              </View>
+            )}
+            {item.protected && (
+              <Ionicons
+                name="lock-closed-outline"
+                size={14}
+                color={theme.muted}
+              />
+            )}
+          </View>
+        ))
       )}
-    />
+      {isFetchingNextPage && (
+        <ActivityIndicator
+          style={{ paddingVertical: 16 }}
+          color={theme.primary}
+        />
+      )}
+      {hasNextPage && !isFetchingNextPage && (
+        <Pressable
+          style={[
+            styles.loadMoreBtn,
+            { borderColor: theme.border, backgroundColor: theme.surface },
+          ]}
+          onPress={() => fetchNextPage()}
+        >
+          <Text style={[styles.loadMoreText, { color: theme.primary }]}>
+            Load more
+          </Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -920,6 +927,17 @@ const styles = StyleSheet.create({
   branchBadgeText: {
     fontSize: 11,
     fontWeight: "600",
+  },
+  loadMoreBtn: {
+    alignItems: "center",
+    paddingVertical: 12,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   breadcrumb: { marginBottom: 8 },
   breadcrumbContent: { flexDirection: "row", alignItems: "center" },
