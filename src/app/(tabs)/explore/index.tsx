@@ -8,20 +8,52 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { SearchRepoItem, RepoSortOption } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { SearchRepoItem } from "../../../lib/api/hooks";
 import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useFavorites } from "../../../lib/favorites";
 import { useEffect, useMemo, useState } from "react";
+import { ChipFilter } from "../../../components/ui";
 import { useSearch } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 
+type SortOption = "best-match" | RepoSortOption;
+type StarsMin = "" | ">100" | ">1000" | ">10000" | ">50000";
+
+const SORT_OPTIONS: { label: string; value: SortOption }[] = [
+  { label: "Best Match", value: "best-match" },
+  { label: "⭐ Stars", value: "stars" },
+  { label: "🍴 Forks", value: "forks" },
+  { label: "🕐 Updated", value: "updated" },
+];
+
+const LANGUAGE_OPTIONS: { label: string; value: string }[] = [
+  { label: "All", value: "" },
+  { label: "TypeScript", value: "TypeScript" },
+  { label: "Python", value: "Python" },
+  { label: "JavaScript", value: "JavaScript" },
+  { label: "Go", value: "Go" },
+  { label: "Rust", value: "Rust" },
+  { label: "Java", value: "Java" },
+  { label: "Swift", value: "Swift" },
+  { label: "Kotlin", value: "Kotlin" },
+  { label: "C++", value: "C++" },
+  { label: "PHP", value: "PHP" },
+];
+
+const STARS_OPTIONS: { label: string; value: StarsMin }[] = [
+  { label: "Any Stars", value: "" },
+  { label: ">100", value: ">100" },
+  { label: ">1k", value: ">1000" },
+  { label: ">10k", value: ">10000" },
+  { label: ">50k", value: ">50000" },
+];
+
 const QUICK_TOPICS = [
-  { label: "🤖 AI & ML", query: "topic:machine-learning stars:>500" },
   { label: "🌐 Web", query: "topic:web stars:>1000" },
   { label: "📱 Mobile", query: "topic:mobile stars:>500" },
   { label: "🔒 Security", query: "topic:security stars:>500" },
@@ -74,7 +106,10 @@ export default function ExploreScreen() {
   const params = useLocalSearchParams<{ q?: string | string[] }>();
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
-  const { data, isLoading } = useSearch(activeQuery, "repositories");
+  const [sortBy, setSortBy] = useState<SortOption>("best-match");
+  const [language, setLanguage] = useState("");
+  const [starsMin, setStarsMin] = useState<StarsMin>("");
+  const [showFilters, setShowFilters] = useState(false);
   const {
     favorites,
     removeFavorite,
@@ -87,6 +122,26 @@ export default function ExploreScreen() {
     return Array.isArray(params.q) ? params.q[0] : params.q;
   }, [params.q]);
 
+  const effectiveQuery = useMemo(() => {
+    if (!activeQuery) return "";
+    let q = activeQuery;
+    if (language && !q.toLowerCase().includes("language:")) {
+      q += ` language:${language}`;
+    }
+    if (starsMin) {
+      q += ` stars:${starsMin}`;
+    }
+    return q;
+  }, [activeQuery, language, starsMin]);
+
+  const activeFiltersCount =
+    (sortBy !== "best-match" ? 1 : 0) + (language ? 1 : 0) + (starsMin ? 1 : 0);
+
+  const { data, isLoading } = useSearch(effectiveQuery, "repositories", {
+    sort: sortBy === "best-match" ? undefined : sortBy,
+    order: "desc",
+  });
+
   useEffect(() => {
     if (incomingQuery) {
       setQuery(incomingQuery);
@@ -98,7 +153,13 @@ export default function ExploreScreen() {
     setQuery(text);
     const trimmed = text.trim();
     if (trimmed.length >= 1) setActiveQuery(trimmed);
-    else setActiveQuery("");
+    else {
+      setActiveQuery("");
+      setSortBy("best-match");
+      setLanguage("");
+      setStarsMin("");
+      setShowFilters(false);
+    }
   };
 
   const handleBack = () => {
@@ -132,70 +193,137 @@ export default function ExploreScreen() {
             Explore
           </Text>
         </View>
-        <View
-          style={[
-            styles.searchBar,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={16}
-            color={theme.muted}
-          />
-          <TextInput
-            style={[styles.searchInput, { color: theme.text }]}
-            placeholder="Search repos, users, topics…"
-            placeholderTextColor={theme.muted}
-            value={query}
-            onChangeText={handleSearch}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <Pressable onPress={() => handleSearch("")}>
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchBar,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <Ionicons
+              name="search"
+              size={16}
+              color={theme.muted}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder="Search repos, users, topics…"
+              placeholderTextColor={theme.muted}
+              value={query}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <Pressable onPress={() => handleSearch("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={theme.muted}
+                />
+              </Pressable>
+            )}
+          </View>
+          {!!activeQuery && (
+            <Pressable
+              style={[
+                styles.filterToggle,
+                {
+                  backgroundColor:
+                    showFilters || activeFiltersCount > 0
+                      ? theme.primary + "20"
+                      : theme.surface,
+                  borderColor:
+                    showFilters || activeFiltersCount > 0
+                      ? theme.primary
+                      : theme.border,
+                },
+              ]}
+              onPress={() => setShowFilters(v => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle filters"
+            >
               <Ionicons
-                name="close-circle"
-                size={16}
-                color={theme.muted}
+                name="options-outline"
+                size={18}
+                color={
+                  showFilters || activeFiltersCount > 0
+                    ? theme.primary
+                    : theme.muted
+                }
               />
+              {activeFiltersCount > 0 && (
+                <View
+                  style={[
+                    styles.filterBadge,
+                    { backgroundColor: theme.primary },
+                  ]}
+                >
+                  <Text style={styles.filterBadgeText}>
+                    {activeFiltersCount}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           )}
         </View>
       </View>
 
       {activeQuery ? (
-        isLoading ? (
-          <ActivityIndicator
-            style={styles.loader}
-            color={theme.primary}
-          />
-        ) : (
-          <FlatList
-            data={data as SearchRepoItem[]}
-            keyExtractor={item => String(item.id)}
-            renderItem={({ item }) => <RepoRow item={item} />}
-            contentContainerStyle={
-              (data as SearchRepoItem[] | undefined)?.length === 0
-                ? styles.listEmptyContainer
-                : undefined
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons
-                  name="search"
-                  size={24}
-                  color={theme.muted}
-                />
-                <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                  No matches found
-                </Text>
-                <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
-                  Try another topic or keyword.
-                </Text>
-              </View>
-            }
-          />
-        )
+        <>
+          {showFilters && (
+            <View
+              style={[styles.filterBar, { borderBottomColor: theme.border }]}
+            >
+              <ChipFilter
+                options={SORT_OPTIONS}
+                value={sortBy}
+                onChange={setSortBy}
+              />
+              <ChipFilter
+                options={LANGUAGE_OPTIONS}
+                value={language}
+                onChange={setLanguage}
+              />
+              <ChipFilter
+                options={STARS_OPTIONS}
+                value={starsMin}
+                onChange={setStarsMin}
+              />
+            </View>
+          )}
+          {isLoading ? (
+            <ActivityIndicator
+              style={styles.loader}
+              color={theme.primary}
+            />
+          ) : (
+            <FlatList
+              data={data as SearchRepoItem[]}
+              keyExtractor={item => String(item.id)}
+              renderItem={({ item }) => <RepoRow item={item} />}
+              contentContainerStyle={
+                (data as SearchRepoItem[] | undefined)?.length === 0
+                  ? styles.listEmptyContainer
+                  : undefined
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Ionicons
+                    name="search"
+                    size={24}
+                    color={theme.muted}
+                  />
+                  <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                    No matches found
+                  </Text>
+                  <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+                    Try another topic or keyword.
+                  </Text>
+                </View>
+              }
+            />
+          )}
+        </>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -390,7 +518,13 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   backBtn: { padding: 6 },
   headerTitle: { fontSize: 28, fontWeight: "800" },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 12,
@@ -399,7 +533,35 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
   },
+  filterToggle: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   searchInput: { flex: 1, fontSize: 15 },
+  filterBar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 2,
+    paddingVertical: 4,
+  },
   loader: { flex: 1 },
   scroll: { padding: 16, gap: 12 },
   sectionTitle: {

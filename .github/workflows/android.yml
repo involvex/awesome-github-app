@@ -19,6 +19,9 @@ jobs:
         uses: oven-sh/setup-bun@v1
       - name: Install dependencies
         run: bun install
+      - name: Extract Latest Changelog
+        run: |
+          awk '/^#+ \[?[0-9]/ { if (p) exit; p=1 } p' CHANGELOG.md > latest-release.md
       - name: Running expo prebuild
         run: npx expo prebuild --platform android --no-install
       - name: setup jdk
@@ -37,5 +40,6 @@ jobs:
         if: github.ref_type == 'tag'
         with:
           files: android/app/build/outputs/apk/release/app-release.apk
+          body_path: latest-release.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

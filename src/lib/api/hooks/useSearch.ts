@@ -15,17 +15,28 @@ export type SearchIssueItem = Awaited<
   ReturnType<OctokitInst["search"]["issuesAndPullRequests"]>
 >["data"]["items"][number];
 
-export function useSearch(query: string, type: SearchType = "repositories") {
+export type RepoSortOption = "stars" | "forks" | "updated";
+
+export interface SearchOptions {
+  sort?: RepoSortOption;
+  order?: "asc" | "desc";
+}
+
+export function useSearch(
+  query: string,
+  type: SearchType = "repositories",
+  options: SearchOptions = {},
+) {
+  const { sort, order = "desc" } = options;
   return useQuery({
-    queryKey: ["search", type, query],
+    queryKey: ["search", type, query, sort ?? "best-match", order],
     queryFn: async () => {
       const octokit = await getOctokit();
       if (type === "repositories") {
         const { data } = await octokit.search.repos({
           q: query,
           per_page: 30,
-          sort: "stars",
-          order: "desc",
+          ...(sort ? { sort, order } : {}),
         });
         return data.items;
       } else if (type === "users") {

@@ -20,6 +20,8 @@ export {
   type SearchRepoItem,
   type SearchUserItem,
   type SearchIssueItem,
+  type RepoSortOption,
+  type SearchOptions,
 } from "./useSearch";
 export { useMyRepos, type RepoFilter, type RepoSort } from "./useMyRepos";
 export {
