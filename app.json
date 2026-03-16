@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "awesome-github-app",
+    "name": "Awesome Github App",
     "slug": "awesome-github-app",
     "owner": "involvex",
-    "version": "0.0.11",
+    "version": "0.0.12",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "githubUrl": "https://github.com/involvex/awesome-github-app.git",
@@ -28,7 +28,7 @@
         "backgroundColor": "#ffffff"
       },
       "userInterfaceStyle": "automatic",
-      "versionCode": 11
+      "versionCode": 12
     },
     "web": {
       "output": "single",
@@ -37,7 +37,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.involvex.awesomegithubapp",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
