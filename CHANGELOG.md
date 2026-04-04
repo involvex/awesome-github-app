@@ -1,3 +1,7 @@
+## [0.0.13](https://github.com/involvex/awesome-github-app/compare/v0.0.12...v0.0.13) (2026-04-04)
+
+## [0.0.12](https://github.com/involvex/awesome-github-app/compare/0.0.11...v0.0.12) (2026-03-16)
+
 ## [0.0.11](https://github.com/involvex/awesome-github-app/compare/0.0.10...0.0.11) (2026-03-09)
 
 ## [0.0.10](https://github.com/involvex/awesome-github-app/compare/0.0.9...0.0.10) (2026-03-09)
