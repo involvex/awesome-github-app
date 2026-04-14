@@ -13,6 +13,7 @@ export { StatBar } from "./StatBar";
 export { EmptyState } from "./EmptyState";
 export { Section } from "./Section";
 export { SettingsRow } from "./SettingsRow";
+export { ReleaseCard, type ReleaseCardProps } from "./ReleaseCard";
 
 // New components
 export { ButtonGroup } from "./ButtonGroup";

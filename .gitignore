@@ -25,3 +25,4 @@ workers/oauth-token-exchange/wrangler.toml
 coverage
 
 .env*.local
+*.log

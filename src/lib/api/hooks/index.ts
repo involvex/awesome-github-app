@@ -1,4 +1,5 @@
 export { useActivity } from "./useActivity";
+export { useReleases, type Release } from "./useReleases";
 export { useTrending, type TrendingPeriod } from "./useTrending";
 export {
   useRepo,

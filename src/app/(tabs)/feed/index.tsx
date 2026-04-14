@@ -9,13 +9,44 @@ import {
   Text,
   View,
 } from "react-native";
+import {
+  useActivity,
+  useReleases,
+  useTrending,
+  type TrendingPeriod,
+} from "../../../lib/api/hooks";
+import {
+  Avatar,
+  ReleaseCard,
+  LanguageDot,
+  StatBar,
+} from "../../../components/ui";
+import type { SearchRepoItem } from "../../../lib/api/hooks";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useActivity } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
-import { Avatar } from "../../../components/ui";
 import { formatDistanceToNow } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+
+type FeedTab = "all" | "following" | "releases" | "trending";
+
+const FEED_TABS: {
+  label: string;
+  value: FeedTab;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { label: "All", value: "all", icon: "apps-outline" },
+  { label: "Following", value: "following", icon: "people-outline" },
+  { label: "Releases", value: "releases", icon: "rocket-outline" },
+  { label: "Trending", value: "trending", icon: "flame-outline" },
+];
+
+const PERIODS: { label: string; value: TrendingPeriod }[] = [
+  { label: "Today", value: "today" },
+  { label: "Week", value: "week" },
+  { label: "Month", value: "month" },
+];
 
 type ActivityEvent = NonNullable<
   ReturnType<typeof useActivity>["data"]
@@ -51,49 +82,49 @@ const EVENT_TYPES: {
   {
     value: "PushEvent",
     label: "Push",
-    description: "Code pushes to branches",
+    description: "Code pushes",
     icon: "git-commit-outline",
   },
   {
     value: "PullRequestEvent",
-    label: "Pull Requests",
-    description: "Opened, closed, or merged",
+    label: "PRs",
+    description: "Pull requests",
     icon: "git-pull-request-outline",
   },
   {
     value: "IssuesEvent",
     label: "Issues",
-    description: "Opened or closed issues",
+    description: "Issues",
     icon: "alert-circle-outline",
   },
   {
     value: "WatchEvent",
     label: "Stars",
-    description: "Repository stars",
+    description: "Stars",
     icon: "star-outline",
   },
   {
     value: "ForkEvent",
     label: "Forks",
-    description: "Repository forks",
+    description: "Forks",
     icon: "git-branch-outline",
   },
   {
     value: "IssueCommentEvent",
     label: "Comments",
-    description: "Issue & PR comments",
+    description: "Comments",
     icon: "chatbubble-outline",
   },
   {
     value: "CreateEvent",
     label: "Create",
-    description: "Branches, tags, repositories",
+    description: "Created",
     icon: "add-circle-outline",
   },
   {
     value: "ReleaseEvent",
     label: "Releases",
-    description: "New releases published",
+    description: "Releases",
     icon: "rocket-outline",
   },
 ];
@@ -156,11 +187,8 @@ function EventCard({ event }: { event: ActivityEvent }) {
               numberOfLines={1}
             >
               {
-                (
-                  event.payload as {
-                    commits?: Array<{ message: string }>;
-                  }
-                ).commits![0].message
+                (event.payload as { commits?: Array<{ message: string }> })
+                  .commits![0].message
               }
             </Text>
           )}
@@ -173,6 +201,54 @@ function EventCard({ event }: { event: ActivityEvent }) {
         </Text>
       </View>
     </View>
+  );
+}
+
+function TrendingCard({ item, rank }: { item: SearchRepoItem; rank: number }) {
+  const theme = useAppTheme();
+  const router = useRouter();
+  return (
+    <Pressable
+      style={[
+        styles.trendingCard,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+      ]}
+      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
+    >
+      <Text style={[styles.rank, { color: theme.muted }]}>#{rank}</Text>
+      <Avatar
+        uri={item.owner?.avatar_url}
+        name={item.owner?.login ?? ""}
+        size={24}
+      />
+      <View style={styles.trendingInfo}>
+        <Text
+          style={[styles.trendingName, { color: theme.text }]}
+          numberOfLines={1}
+        >
+          {item.full_name}
+        </Text>
+        {!!item.description && (
+          <Text
+            style={[styles.trendingDesc, { color: theme.subtle }]}
+            numberOfLines={1}
+          >
+            {item.description}
+          </Text>
+        )}
+        <View style={styles.trendingMeta}>
+          <LanguageDot
+            language={item.language}
+            showLabel={false}
+          />
+          <StatBar
+            stars={item.stargazers_count}
+            forks={item.forks_count}
+            compact
+          />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -226,7 +302,6 @@ function FilterModal({
           ]}
         >
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: theme.text }]}>
               Filter Events
@@ -235,7 +310,6 @@ function FilterModal({
               {isAll ? "All types" : `${draft.length} selected`}
             </Text>
           </View>
-
           <ScrollView
             style={styles.filterList}
             showsVerticalScrollIndicator={false}
@@ -298,7 +372,6 @@ function FilterModal({
               );
             })}
           </ScrollView>
-
           <View style={[styles.sheetFooter, { borderTopColor: theme.border }]}>
             <Pressable
               onPress={() => setDraft([...ALL_FILTERS])}
@@ -332,17 +405,169 @@ function FilterModal({
 export default function FeedScreen() {
   const { user } = useAuth();
   const theme = useAppTheme();
-  const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
-    useActivity(user?.login ?? "");
+  const [tab, setTab] = useState<FeedTab>("all");
+  const [trendingPeriod, setTrendingPeriod] = useState<TrendingPeriod>("today");
   const [activeFilters, setActiveFilters] =
     useState<EventFilter[]>(ALL_FILTERS);
   const [filterVisible, setFilterVisible] = useState(false);
 
-  const allEvents = data?.pages.flat() ?? [];
+  const {
+    data: activityData,
+    isLoading: isActivityLoading,
+    fetchNextPage,
+    hasNextPage,
+    refetch: refetchActivity,
+    isRefetching: isActivityRefetching,
+  } = useActivity(user?.login ?? "");
+
+  const {
+    data: releasesData,
+    refetch: refetchReleases,
+    isRefetching: isReleasesRefetching,
+  } = useReleases(user?.login ?? "");
+
+  const {
+    data: trendingData,
+    isLoading: isTrendingLoading,
+    refetch: refetchTrending,
+  } = useTrending(trendingPeriod, undefined);
+
+  const allEvents = activityData?.pages.flat() ?? [];
   const hasCustomFilter = activeFilters.length < ALL_FILTERS.length;
   const events = hasCustomFilter
     ? allEvents.filter(e => activeFilters.includes(e.type as EventFilter))
     : allEvents;
+
+  const isLoading = isActivityLoading;
+  const isRefetching = isActivityRefetching;
+  const refetch =
+    tab === "all" || tab === "following"
+      ? refetchActivity
+      : tab === "releases"
+        ? refetchReleases
+        : refetchTrending;
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <ActivityIndicator
+          style={styles.loader}
+          color={theme.primary}
+        />
+      );
+    }
+
+    switch (tab) {
+      case "all":
+      case "following":
+        return (
+          <FlatList
+            data={events}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => <EventCard event={item} />}
+            contentContainerStyle={styles.list}
+            onEndReached={() => hasNextPage && fetchNextPage()}
+            onEndReachedThreshold={0.3}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={refetch}
+                tintColor={theme.primary}
+              />
+            }
+            ListEmptyComponent={
+              <Text style={[styles.empty, { color: theme.subtle }]}>
+                {tab === "all" ? "No recent activity" : "Follow some users!"}
+              </Text>
+            }
+          />
+        );
+
+      case "releases":
+        return (
+          <FlatList
+            data={releasesData ?? []}
+            keyExtractor={item => String(item.id)}
+            renderItem={({ item }) => <ReleaseCard release={item} />}
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl
+                refreshing={isReleasesRefetching}
+                onRefresh={refetchReleases}
+                tintColor={theme.primary}
+              />
+            }
+            ListEmptyComponent={
+              <Text style={[styles.empty, { color: theme.subtle }]}>
+                No releases from your repositories yet.
+              </Text>
+            }
+          />
+        );
+
+      case "trending":
+        return (
+          <View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.periodScroll}
+            >
+              {PERIODS.map(p => (
+                <Pressable
+                  key={p.value}
+                  onPress={() => setTrendingPeriod(p.value)}
+                  style={[
+                    styles.periodBtn,
+                    {
+                      backgroundColor:
+                        trendingPeriod === p.value
+                          ? theme.primary
+                          : theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.periodBtnText,
+                      {
+                        color: trendingPeriod === p.value ? "#fff" : theme.text,
+                      },
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {isTrendingLoading ? (
+              <ActivityIndicator
+                style={styles.loader}
+                color={theme.primary}
+              />
+            ) : (
+              <FlatList
+                data={trendingData ?? []}
+                keyExtractor={item => String(item.id)}
+                renderItem={({ item, index }) => (
+                  <TrendingCard
+                    item={item}
+                    rank={index + 1}
+                  />
+                )}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                  <Text style={[styles.empty, { color: theme.subtle }]}>
+                    No trending repos found.
+                  </Text>
+                }
+              />
+            )}
+          </View>
+        );
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -369,6 +594,43 @@ export default function FeedScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.tabFilter}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScroll}
+        >
+          {FEED_TABS.map(t => (
+            <Pressable
+              key={t.value}
+              onPress={() => setTab(t.value)}
+              style={[
+                styles.tabBtn,
+                {
+                  backgroundColor:
+                    tab === t.value ? theme.primary : theme.surface,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name={t.icon}
+                size={16}
+                color={tab === t.value ? "#fff" : theme.subtle}
+              />
+              <Text
+                style={[
+                  styles.tabBtnText,
+                  { color: tab === t.value ? "#fff" : theme.text },
+                ]}
+              >
+                {t.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       <FilterModal
         visible={filterVisible}
         activeFilters={activeFilters}
@@ -376,33 +638,7 @@ export default function FeedScreen() {
         onClose={() => setFilterVisible(false)}
       />
 
-      {isLoading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
-      ) : (
-        <FlatList
-          data={events}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <EventCard event={item} />}
-          contentContainerStyle={styles.list}
-          onEndReached={() => hasNextPage && fetchNextPage()}
-          onEndReachedThreshold={0.3}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={theme.primary}
-            />
-          }
-          ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              No recent activity. Follow some users!
-            </Text>
-          }
-        />
-      )}
+      {renderContent()}
     </View>
   );
 }
@@ -411,7 +647,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingTop: 56,
-    paddingBottom: 12,
+    paddingBottom: 10,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
@@ -428,6 +664,18 @@ const styles = StyleSheet.create({
     top: 0,
     right: -1,
   },
+  tabFilter: { paddingHorizontal: 16, paddingBottom: 10 },
+  tabScroll: { gap: 8, paddingRight: 16 },
+  tabBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tabBtnText: { fontSize: 13, fontWeight: "600" },
   loader: { flex: 1 },
   list: { padding: 12, gap: 10 },
   // Event card
@@ -439,11 +687,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   eventLeft: { alignItems: "center", width: 32 },
-  eventIconBadge: {
-    marginTop: -8,
-    borderRadius: 8,
-    padding: 1,
-  },
+  eventIconBadge: { marginTop: -8, borderRadius: 8, padding: 1 },
   eventBody: { flex: 1, gap: 3 },
   eventActor: { fontSize: 14, fontWeight: "600" },
   eventLabel: { fontWeight: "400" },
@@ -451,6 +695,29 @@ const styles = StyleSheet.create({
   eventMeta: { fontSize: 13 },
   eventTime: { fontSize: 12 },
   empty: { textAlign: "center", marginTop: 80, fontSize: 15 },
+  // Trending card
+  periodFilter: { paddingHorizontal: 20, paddingBottom: 8 },
+  periodScroll: { gap: 8, paddingRight: 20 },
+  periodBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  periodBtnText: { fontSize: 13, fontWeight: "600" },
+  trendingCard: {
+    flexDirection: "row",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+    alignItems: "center",
+  },
+  rank: { fontSize: 13, fontWeight: "700", minWidth: 24 },
+  trendingInfo: { flex: 1 },
+  trendingName: { fontSize: 14, fontWeight: "600" },
+  trendingDesc: { fontSize: 12 },
+  trendingMeta: { flexDirection: "row", gap: 10, marginTop: 4 },
   // Modal
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   backdropPress: {
@@ -460,9 +727,7 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingBottom: 34,
     maxHeight: "85%",
   },
