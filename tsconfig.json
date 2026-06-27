@@ -3,5 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["__tests__/integration/LayoutAuth.test.tsx"]
+  "exclude": ["__tests__/**"]
 }

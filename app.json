@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "githubUrl": "https://github.com/involvex/awesome-github-app.git",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "scheme": "awesomegithubapp",
     "plugins": [
       "expo-router",
@@ -19,7 +14,9 @@
       "expo-web-browser",
       "expo-image",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "android": {
       "package": "com.involvex.awesomegithubapp",

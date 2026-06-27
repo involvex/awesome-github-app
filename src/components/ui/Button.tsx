@@ -13,11 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "../../lib/theme";
 
 export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "outline"
-  | "ghost"
-  | "danger";
+  "primary" | "secondary" | "outline" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends Omit<
