@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A modern GitHub mobile client built with **Expo 55 (CNG)**, **React Native 0.83**, **Expo Router**, and **Uniwind** (Tailwind CSS for React Native). Uses **bun** as the package manager.
+A modern GitHub mobile client built with **Expo 57 (CNG)**, **React Native 0.86**, **Expo Router**, and **Uniwind** (Tailwind CSS for React Native). Uses **bun** as the package manager.
 
 ---
 

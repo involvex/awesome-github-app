@@ -1,22 +1,29 @@
+import {
+  useTrending,
+  type TrendingMode,
+  type TrendingPeriod,
+} from "../../../lib/api/hooks";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { useTrending, type TrendingPeriod } from "../../../lib/api/hooks";
-import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
 import { SkeletonCard } from "../../../components/ui/Skeleton";
-import type { SearchRepoItem } from "../../../lib/api/hooks";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { TrendingCard } from "../../../components/explore";
 import { useToast } from "../../../contexts/ToastContext";
-import { StatBar } from "../../../components/ui/StatBar";
-import { Avatar } from "../../../components/ui/Avatar";
 import { useFavorites } from "../../../lib/favorites";
+import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 
 const PERIODS: { label: string; value: TrendingPeriod }[] = [
   { label: "Today", value: "today" },
   { label: "This Week", value: "week" },
   { label: "This Month", value: "month" },
+];
+
+const MODES: { label: string; value: TrendingMode }[] = [
+  { label: "Hot", value: "hot" },
+  { label: "New", value: "new" },
+  { label: "Released", value: "released" },
 ];
 
 const LANGUAGES: { label: string; value: string }[] = [
@@ -47,62 +54,48 @@ const LANGUAGES: { label: string; value: string }[] = [
   { label: "Zig", value: "Zig" },
 ];
 
-function TrendingCard({ item, rank }: { item: SearchRepoItem; rank: number }) {
-  const theme = useAppTheme();
-  const router = useRouter();
-  return (
-    <Pressable
-      style={[
-        styles.card,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={[styles.rank, { color: theme.muted }]}>#{rank}</Text>
-        <Avatar
-          uri={item.owner?.avatar_url}
-          name={item.owner?.login ?? ""}
-          size={24}
-        />
-        <Text
-          style={[styles.fullName, { color: theme.text }]}
-          numberOfLines={1}
-        >
-          {item.full_name}
-        </Text>
-      </View>
-      {!!item.description && (
-        <Text
-          style={[styles.desc, { color: theme.subtle }]}
-          numberOfLines={2}
-        >
-          {item.description}
-        </Text>
-      )}
-      <View style={styles.cardFooter}>
-        <LanguageDot language={item.language} />
-        <StatBar
-          stars={item.stargazers_count}
-          forks={item.forks_count}
-          watchers={item.watchers_count}
-        />
-      </View>
-    </Pressable>
-  );
+function parseMode(value: string | string[] | undefined): TrendingMode {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "new" || raw === "released" || raw === "hot") return raw;
+  return "hot";
+}
+
+function parsePeriod(value: string | string[] | undefined): TrendingPeriod {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "today" || raw === "week" || raw === "month") return raw;
+  return "week";
 }
 
 export default function TrendingScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const [period, setPeriod] = useState<TrendingPeriod>("today");
+  const params = useLocalSearchParams<{
+    mode?: string | string[];
+    period?: string | string[];
+  }>();
+  const initialMode = useMemo(() => parseMode(params.mode), [params.mode]);
+  const initialPeriod = useMemo(
+    () => parsePeriod(params.period),
+    [params.period],
+  );
+  const [period, setPeriod] = useState<TrendingPeriod>(initialPeriod);
+  const [mode, setMode] = useState<TrendingMode>(initialMode);
   const [language, setLanguage] = useState("all");
   const { data, isLoading, refetch } = useTrending(
     period,
     language === "all" ? undefined : language,
+    mode,
   );
   const { toggleFavorite, isFavorite } = useFavorites();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  useEffect(() => {
+    setPeriod(initialPeriod);
+  }, [initialPeriod]);
 
   const currentFavorite =
     language !== "all"
@@ -161,6 +154,11 @@ export default function TrendingScreen() {
           onChange={setPeriod}
         />
         <ChipFilter
+          options={MODES}
+          value={mode}
+          onChange={setMode}
+        />
+        <ChipFilter
           options={LANGUAGES}
           value={language}
           onChange={setLanguage}
@@ -208,6 +206,7 @@ export default function TrendingScreen() {
             <TrendingCard
               item={item}
               rank={index + 1}
+              showReleaseDate={mode === "released"}
             />
           )}
           contentContainerStyle={styles.list}
@@ -222,7 +221,7 @@ export default function TrendingScreen() {
                 No results found
               </Text>
               <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
-                Try another language or time range.
+                Try another mode, language, or time range.
               </Text>
             </View>
           }
@@ -247,17 +246,6 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "800" },
   filters: { gap: 4, paddingTop: 8 },
   list: { padding: 16, gap: 12 },
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 10,
-  },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  rank: { fontSize: 13, fontWeight: "700", minWidth: 24 },
-  fullName: { flex: 1, fontSize: 14, fontWeight: "700" },
-  desc: { fontSize: 13, lineHeight: 18 },
-  cardFooter: { flexDirection: "row", gap: 12, alignItems: "center" },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",

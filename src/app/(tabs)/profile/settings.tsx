@@ -107,7 +107,7 @@ export default function SettingsScreen() {
           label="Default feed view"
           value={
             preferences.defaultFeedView === "activity"
-              ? "Recent activity"
+              ? "Activity feed"
               : "Repositories"
           }
           onPress={() => router.push("/settings/feed-view")}

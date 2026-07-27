@@ -1,6 +1,11 @@
 export { useActivity } from "./useActivity";
 export { useReleases, type Release } from "./useReleases";
-export { useTrending, type TrendingPeriod } from "./useTrending";
+export {
+  useTrending,
+  type TrendingPeriod,
+  type TrendingMode,
+  type TrendingRepoItem,
+} from "./useTrending";
 export {
   useRepo,
   useRepoTopics,
@@ -15,6 +20,7 @@ export {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllRead,
+  type NotificationThread,
 } from "./useNotifications";
 export {
   useSearch,

@@ -10,14 +10,15 @@ import {
 } from "react-native";
 import type { SearchRepoItem, RepoSortOption } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
+import { useSearch, useTrending } from "../../../lib/api/hooks";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { TrendingCard } from "../../../components/explore";
 import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useFavorites } from "../../../lib/favorites";
 import { useEffect, useMemo, useState } from "react";
 import { ChipFilter } from "../../../components/ui";
-import { useSearch } from "../../../lib/api/hooks";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -54,13 +55,14 @@ const STARS_OPTIONS: { label: string; value: StarsMin }[] = [
 ];
 
 const QUICK_TOPICS = [
-  { label: "🌐 Web", query: "topic:web stars:>1000" },
-  { label: "📱 Mobile", query: "topic:mobile stars:>500" },
-  { label: "🔒 Security", query: "topic:security stars:>500" },
-  { label: "🐳 DevOps", query: "topic:devops stars:>500" },
-  { label: "🎮 Games", query: "topic:game stars:>500" },
-  { label: "📊 Data", query: "topic:data-science stars:>500" },
-  { label: "🦀 Rust", query: "language:rust stars:>500" },
+  { label: "Android / APK", query: "topic:android stars:>50" },
+  { label: "Web", query: "topic:web stars:>1000" },
+  { label: "Mobile", query: "topic:mobile stars:>500" },
+  { label: "Security", query: "topic:security stars:>500" },
+  { label: "DevOps", query: "topic:devops stars:>500" },
+  { label: "Games", query: "topic:game stars:>500" },
+  { label: "Data", query: "topic:data-science stars:>500" },
+  { label: "Rust", query: "language:rust stars:>500" },
 ];
 
 function RepoRow({ item }: { item: SearchRepoItem }) {
@@ -143,7 +145,14 @@ export default function ExploreScreen() {
       order: "desc",
     });
 
+  const { data: trendingPreview, isLoading: isTrendingPreviewLoading } =
+    useTrending("week", undefined, "hot");
+  const { data: hotReleasesPreview, isLoading: isHotReleasesLoading } =
+    useTrending("week", undefined, "released");
+
   const repos = data?.pages.flatMap(p => p as SearchRepoItem[]) ?? [];
+  const trendingTop = (trendingPreview ?? []).slice(0, 5);
+  const releasesTop = (hotReleasesPreview ?? []).slice(0, 5);
 
   useEffect(() => {
     if (incomingQuery) {
@@ -339,10 +348,117 @@ export default function ExploreScreen() {
         </>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Trending
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/explore/trending",
+                  params: { mode: "hot", period: "week" },
+                })
+              }
+            >
+              <Text style={[styles.seeAll, { color: theme.primary }]}>
+                See all
+              </Text>
+            </Pressable>
+          </View>
+          {isTrendingPreviewLoading ? (
+            <ActivityIndicator
+              style={{ marginVertical: 12 }}
+              color={theme.primary}
+            />
+          ) : (
+            <View style={styles.previewList}>
+              {trendingTop.map((item, index) => (
+                <TrendingCard
+                  key={item.id}
+                  item={item}
+                  rank={index + 1}
+                  compact
+                />
+              ))}
+              {trendingTop.length === 0 && (
+                <Text style={[styles.emptyFavText, { color: theme.subtle }]}>
+                  No trending repos right now.
+                </Text>
+              )}
+            </View>
+          )}
+
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
+              Hot releases
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/explore/trending",
+                  params: { mode: "released", period: "week" },
+                })
+              }
+            >
+              <Text style={[styles.seeAll, { color: theme.primary }]}>
+                See all
+              </Text>
+            </Pressable>
+          </View>
+          {isHotReleasesLoading ? (
+            <ActivityIndicator
+              style={{ marginVertical: 12 }}
+              color={theme.primary}
+            />
+          ) : (
+            <View style={styles.previewList}>
+              {releasesTop.map((item, index) => (
+                <TrendingCard
+                  key={item.id}
+                  item={item}
+                  rank={index + 1}
+                  compact
+                  showReleaseDate
+                />
+              ))}
+              {releasesTop.length === 0 && (
+                <Text style={[styles.emptyFavText, { color: theme.subtle }]}>
+                  No recent releases found.
+                </Text>
+              )}
+            </View>
+          )}
+
           <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Trending
+            Discover
           </Text>
           <View style={styles.trendingButtons}>
+            <Pressable
+              style={[
+                styles.trendBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => router.push("/(tabs)/explore/android-apps")}
+            >
+              <Ionicons
+                name="phone-portrait"
+                size={22}
+                color="#3DDC84"
+              />
+              <View style={styles.trendBtnCopy}>
+                <Text style={[styles.trendBtnText, { color: theme.text }]}>
+                  Android apps
+                </Text>
+                <Text style={[styles.trendBtnSub, { color: theme.subtle }]}>
+                  Browse open-source apps on GitHub
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={theme.muted}
+              />
+            </Pressable>
             <Pressable
               style={[
                 styles.trendBtn,
@@ -577,12 +693,21 @@ const styles = StyleSheet.create({
   },
   loader: { flex: 1 },
   scroll: { padding: 16, gap: 12 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 4,
     marginTop: 8,
   },
+  seeAll: { fontSize: 13, fontWeight: "600" },
+  previewList: { gap: 8, marginBottom: 8 },
   trendingButtons: { gap: 8, marginBottom: 8 },
   trendBtn: {
     flexDirection: "row",
@@ -592,7 +717,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 10,
   },
+  trendBtnCopy: { flex: 1, gap: 2 },
   trendBtnText: { flex: 1, fontSize: 15, fontWeight: "600" },
+  trendBtnSub: { fontSize: 12 },
   topicGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   topicChip: {
     paddingHorizontal: 14,

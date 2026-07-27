@@ -1,3 +1,11 @@
+## [0.0.17](https://github.com/involvex/awesome-github-app/compare/0.0.16...0.0.17) (2026-07-27)
+
+### Features
+
+- upgrade to Expo 57 and improve feed, explore, and fork UX ([7fbf7c5](https://github.com/involvex/awesome-github-app/commit/7fbf7c5f91de05e9b19e7cadacf24ee53257ea33))
+
+## [0.0.16](https://github.com/involvex/awesome-github-app/compare/0.0.15...0.0.16) (2026-06-27)
+
 ## [0.0.15](https://github.com/involvex/awesome-github-app/compare/0.0.14...0.0.15) (2026-04-14)
 
 ## [0.0.14](https://github.com/involvex/awesome-github-app/compare/0.0.13...0.0.14) (2026-04-10)

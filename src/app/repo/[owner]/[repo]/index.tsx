@@ -9,6 +9,7 @@ import {
 import {
   ActivityIndicator,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   Share,
@@ -24,10 +25,135 @@ import { useAuth } from "../../../../contexts/AuthContext";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { useAppTheme } from "../../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 
 const TABS = ["About", "Code", "Issues", "PRs", "Actions", "Branches"] as const;
 type RepoTab = (typeof TABS)[number];
+
+interface ForkResult {
+  ownerLogin: string;
+  name: string;
+  fullName: string;
+  cloneUrl: string;
+}
+
+function ForkSuccessModal({
+  fork,
+  visible,
+  onClose,
+  onViewFork,
+}: {
+  fork: ForkResult | null;
+  visible: boolean;
+  onClose: () => void;
+  onViewFork: () => void;
+}) {
+  const theme = useAppTheme();
+  const { showToast } = useToast();
+  const cloneCommand = fork ? `git clone ${fork.cloneUrl}` : "";
+
+  async function handleCopyClone() {
+    if (!cloneCommand) return;
+    await Clipboard.setStringAsync(cloneCommand);
+    showToast("Clone command copied", "success");
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <Pressable
+          style={styles.backdropPress}
+          onPress={onClose}
+        />
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <View style={[styles.handle, { backgroundColor: theme.border }]} />
+          <View style={styles.sheetHeader}>
+            <Ionicons
+              name="git-branch"
+              size={22}
+              color={theme.primary}
+            />
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              Fork created
+            </Text>
+          </View>
+          {!!fork && (
+            <Text style={[styles.sheetSubtitle, { color: theme.subtle }]}>
+              {fork.fullName}
+            </Text>
+          )}
+
+          <View
+            style={[
+              styles.cloneBox,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+          >
+            <Text
+              style={[styles.cloneCommand, { color: theme.text }]}
+              selectable
+              numberOfLines={3}
+            >
+              {cloneCommand}
+            </Text>
+            <Pressable
+              onPress={handleCopyClone}
+              style={({ pressed }) => [
+                styles.copyBtn,
+                { backgroundColor: theme.primary },
+                pressed && { opacity: 0.85 },
+              ]}
+              accessibilityLabel="Copy clone command"
+            >
+              <Ionicons
+                name="copy-outline"
+                size={16}
+                color="#fff"
+              />
+              <Text style={styles.copyBtnText}>Copy</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.sheetActions}>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.sheetSecondaryBtn,
+                { borderColor: theme.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[styles.sheetSecondaryText, { color: theme.text }]}>
+                Stay here
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={onViewFork}
+              style={({ pressed }) => [
+                styles.sheetPrimaryBtn,
+                { backgroundColor: theme.primary },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.sheetPrimaryText}>View your fork</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 function AboutTab({ owner, repo }: { owner: string; repo: string }) {
   const theme = useAppTheme();
@@ -448,6 +574,7 @@ export default function RepoDetailScreen() {
   const { showToast } = useToast();
   const { data, isLoading } = useRepo(owner!, repo!);
   const [activeTab, setActiveTab] = useState<RepoTab>("About");
+  const [forkResult, setForkResult] = useState<ForkResult | null>(null);
   const forkMutation = useCreateFork(owner!, repo!);
 
   const isOwner = !!data && !!user && data.owner.login === user.login;
@@ -463,11 +590,27 @@ export default function RepoDetailScreen() {
 
   async function handleFork() {
     try {
-      await forkMutation.mutateAsync();
-      showToast("Fork created successfully!", "success");
+      const forked = await forkMutation.mutateAsync();
+      const ownerLogin = forked.owner?.login ?? user?.login ?? "";
+      const name = forked.name ?? repo!;
+      const cloneUrl =
+        forked.clone_url ?? `https://github.com/${ownerLogin}/${name}.git`;
+      setForkResult({
+        ownerLogin,
+        name,
+        fullName: forked.full_name ?? `${ownerLogin}/${name}`,
+        cloneUrl,
+      });
     } catch {
       showToast("Failed to create fork. Please try again.", "error");
     }
+  }
+
+  function handleViewFork() {
+    if (!forkResult) return;
+    const { ownerLogin, name } = forkResult;
+    setForkResult(null);
+    router.push(`/repo/${ownerLogin}/${name}`);
   }
 
   if (isLoading || !data) {
@@ -483,6 +626,12 @@ export default function RepoDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ForkSuccessModal
+        fork={forkResult}
+        visible={!!forkResult}
+        onClose={() => setForkResult(null)}
+        onViewFork={handleViewFork}
+      />
       <ScrollView stickyHeaderIndices={[1]}>
         {/* Repo Header */}
         <View
@@ -939,6 +1088,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+  backdropPress: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    gap: 12,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: "700" },
+  sheetSubtitle: { fontSize: 14, fontWeight: "500" },
+  cloneBox: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+    gap: 10,
+  },
+  cloneCommand: {
+    fontSize: 13,
+    fontFamily: "monospace",
+    lineHeight: 18,
+  },
+  copyBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  copyBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  sheetActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  sheetSecondaryBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  sheetSecondaryText: { fontSize: 15, fontWeight: "600" },
+  sheetPrimaryBtn: {
+    flex: 1.4,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  sheetPrimaryText: { fontSize: 15, fontWeight: "600", color: "#fff" },
   breadcrumb: { marginBottom: 8 },
   breadcrumbContent: { flexDirection: "row", alignItems: "center" },
   breadcrumbItem: { flexDirection: "row", alignItems: "center" },

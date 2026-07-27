@@ -9,43 +9,24 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  useActivity,
-  useReleases,
-  useTrending,
-  type TrendingPeriod,
-} from "../../../lib/api/hooks";
-import {
-  Avatar,
-  ReleaseCard,
-  LanguageDot,
-  StatBar,
-} from "../../../components/ui";
-import type { SearchRepoItem } from "../../../lib/api/hooks";
+import { useActivity, useReleases } from "../../../lib/api/hooks";
+import { Avatar, ReleaseCard } from "../../../components/ui";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 
-type FeedTab = "all" | "following" | "releases" | "trending";
+type FeedTab = "activity" | "releases";
 
 const FEED_TABS: {
   label: string;
   value: FeedTab;
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
-  { label: "All", value: "all", icon: "apps-outline" },
-  { label: "Following", value: "following", icon: "people-outline" },
-  { label: "Releases", value: "releases", icon: "rocket-outline" },
-  { label: "Trending", value: "trending", icon: "flame-outline" },
-];
-
-const PERIODS: { label: string; value: TrendingPeriod }[] = [
-  { label: "Today", value: "today" },
-  { label: "Week", value: "week" },
-  { label: "Month", value: "month" },
+  { label: "Activity", value: "activity", icon: "pulse-outline" },
+  { label: "My Releases", value: "releases", icon: "rocket-outline" },
 ];
 
 type ActivityEvent = NonNullable<
@@ -142,36 +123,143 @@ const ICON_MAP: Record<string, { icon: string; label: string }> = {
   PublicEvent: { icon: "globe", label: "made public" },
 };
 
-function EventCard({ event }: { event: ActivityEvent }) {
+type FeedRow =
+  | { kind: "single"; event: ActivityEvent }
+  | {
+      kind: "pushGroup";
+      id: string;
+      actorLogin: string;
+      actorAvatar?: string;
+      repoName: string;
+      events: ActivityEvent[];
+      latest: ActivityEvent;
+    };
+
+function parseRepoPath(fullName: string | undefined): {
+  owner: string;
+  repo: string;
+} | null {
+  if (!fullName) return null;
+  const [owner, repo] = fullName.split("/");
+  if (!owner || !repo) return null;
+  return { owner, repo };
+}
+
+function collapsePushEvents(events: ActivityEvent[]): FeedRow[] {
+  const rows: FeedRow[] = [];
+  let i = 0;
+  while (i < events.length) {
+    const event = events[i];
+    if (event.type !== "PushEvent") {
+      rows.push({ kind: "single", event });
+      i += 1;
+      continue;
+    }
+
+    const actorLogin = event.actor?.login ?? "";
+    const repoName = event.repo?.name ?? "";
+    const group: ActivityEvent[] = [event];
+    let j = i + 1;
+    while (j < events.length) {
+      const next = events[j];
+      if (
+        next.type === "PushEvent" &&
+        (next.actor?.login ?? "") === actorLogin &&
+        (next.repo?.name ?? "") === repoName
+      ) {
+        group.push(next);
+        j += 1;
+      } else {
+        break;
+      }
+    }
+
+    if (group.length === 1) {
+      rows.push({ kind: "single", event });
+    } else {
+      rows.push({
+        kind: "pushGroup",
+        id: `push-${group[0].id}-${group.length}`,
+        actorLogin,
+        actorAvatar: event.actor?.avatar_url,
+        repoName,
+        events: group,
+        latest: group[0],
+      });
+    }
+    i = j;
+  }
+  return rows;
+}
+
+function EventRow({
+  event,
+  pushCount,
+}: {
+  event: ActivityEvent;
+  pushCount?: number;
+}) {
   const theme = useAppTheme();
-  const { icon, label } = ICON_MAP[event.type ?? ""] ?? {
-    icon: "ellipsis-horizontal",
-    label: "activity on",
-  };
+  const router = useRouter();
+  const isGroupedPush = (pushCount ?? 1) > 1;
+  const { icon, label } = isGroupedPush
+    ? {
+        icon: "git-commit",
+        label: `pushed ${pushCount} times to`,
+      }
+    : (ICON_MAP[event.type ?? ""] ?? {
+        icon: "ellipsis-horizontal",
+        label: "activity on",
+      });
+
+  const repoPath = parseRepoPath(event.repo?.name);
+  const commitMessage =
+    event.type === "PushEvent"
+      ? (event.payload as { commits?: Array<{ message: string }> })
+          ?.commits?.[0]?.message
+      : undefined;
 
   return (
-    <View
-      style={[
-        styles.eventCard,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-    >
-      <View style={styles.eventLeft}>
+    <View style={[styles.eventRow, { borderBottomColor: theme.border }]}>
+      <Pressable
+        onPress={() => {
+          if (event.actor?.login) router.push(`/user/${event.actor.login}`);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${event.actor?.login ?? "user"}`}
+        style={styles.eventLeft}
+      >
         <Avatar
           uri={event.actor?.avatar_url}
           name={event.actor?.login}
-          size={32}
+          size={28}
         />
         <Ionicons
           name={icon as keyof typeof Ionicons.glyphMap}
-          size={14}
+          size={12}
           color={theme.primary}
-          style={[styles.eventIconBadge, { backgroundColor: theme.surface }]}
+          style={[styles.eventIconBadge, { backgroundColor: theme.background }]}
         />
-      </View>
-      <View style={styles.eventBody}>
+      </Pressable>
+      <Pressable
+        style={styles.eventBody}
+        onPress={() => {
+          if (repoPath) {
+            router.push(`/repo/${repoPath.owner}/${repoPath.repo}`);
+          }
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${event.repo?.name ?? "repository"}`}
+      >
         <Text style={[styles.eventActor, { color: theme.text }]}>
-          {event.actor?.login}{" "}
+          <Text
+            onPress={() => {
+              if (event.actor?.login) router.push(`/user/${event.actor.login}`);
+            }}
+            style={{ color: theme.text, fontWeight: "600" }}
+          >
+            {event.actor?.login}
+          </Text>{" "}
           <Text style={[styles.eventLabel, { color: theme.subtle }]}>
             {label}{" "}
           </Text>
@@ -179,19 +267,14 @@ function EventCard({ event }: { event: ActivityEvent }) {
             {event.repo?.name}
           </Text>
         </Text>
-        {event.type === "PushEvent" &&
-          (event.payload as { commits?: Array<{ message: string }> })
-            ?.commits?.[0] && (
-            <Text
-              style={[styles.eventMeta, { color: theme.subtle }]}
-              numberOfLines={1}
-            >
-              {
-                (event.payload as { commits?: Array<{ message: string }> })
-                  .commits![0].message
-              }
-            </Text>
-          )}
+        {!!commitMessage && !isGroupedPush && (
+          <Text
+            style={[styles.eventMeta, { color: theme.subtle }]}
+            numberOfLines={1}
+          >
+            {commitMessage}
+          </Text>
+        )}
         <Text style={[styles.eventTime, { color: theme.muted }]}>
           {event.created_at
             ? formatDistanceToNow(new Date(event.created_at), {
@@ -199,56 +282,8 @@ function EventCard({ event }: { event: ActivityEvent }) {
               })
             : ""}
         </Text>
-      </View>
+      </Pressable>
     </View>
-  );
-}
-
-function TrendingCard({ item, rank }: { item: SearchRepoItem; rank: number }) {
-  const theme = useAppTheme();
-  const router = useRouter();
-  return (
-    <Pressable
-      style={[
-        styles.trendingCard,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
-    >
-      <Text style={[styles.rank, { color: theme.muted }]}>#{rank}</Text>
-      <Avatar
-        uri={item.owner?.avatar_url}
-        name={item.owner?.login ?? ""}
-        size={24}
-      />
-      <View style={styles.trendingInfo}>
-        <Text
-          style={[styles.trendingName, { color: theme.text }]}
-          numberOfLines={1}
-        >
-          {item.full_name}
-        </Text>
-        {!!item.description && (
-          <Text
-            style={[styles.trendingDesc, { color: theme.subtle }]}
-            numberOfLines={1}
-          >
-            {item.description}
-          </Text>
-        )}
-        <View style={styles.trendingMeta}>
-          <LanguageDot
-            language={item.language}
-            showLabel={false}
-          />
-          <StatBar
-            stars={item.stargazers_count}
-            forks={item.forks_count}
-            compact
-          />
-        </View>
-      </View>
-    </Pressable>
   );
 }
 
@@ -268,7 +303,7 @@ function FilterModal({
 
   useEffect(() => {
     if (visible) setDraft([...activeFilters]);
-  }, [visible]);
+  }, [visible, activeFilters]);
 
   function toggle(value: EventFilter) {
     setDraft(prev =>
@@ -405,8 +440,8 @@ function FilterModal({
 export default function FeedScreen() {
   const { user } = useAuth();
   const theme = useAppTheme();
-  const [tab, setTab] = useState<FeedTab>("all");
-  const [trendingPeriod, setTrendingPeriod] = useState<TrendingPeriod>("today");
+  const router = useRouter();
+  const [tab, setTab] = useState<FeedTab>("activity");
   const [activeFilters, setActiveFilters] =
     useState<EventFilter[]>(ALL_FILTERS);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -424,174 +459,50 @@ export default function FeedScreen() {
     data: releasesData,
     refetch: refetchReleases,
     isRefetching: isReleasesRefetching,
+    isLoading: isReleasesLoading,
   } = useReleases(user?.login ?? "");
-
-  const {
-    data: trendingData,
-    isLoading: isTrendingLoading,
-    refetch: refetchTrending,
-  } = useTrending(trendingPeriod, undefined);
 
   const allEvents = activityData?.pages.flat() ?? [];
   const hasCustomFilter = activeFilters.length < ALL_FILTERS.length;
-  const events = hasCustomFilter
+  const filteredEvents = hasCustomFilter
     ? allEvents.filter(e => activeFilters.includes(e.type as EventFilter))
     : allEvents;
 
-  const isLoading = isActivityLoading;
-  const isRefetching = isActivityRefetching;
-  const refetch =
-    tab === "all" || tab === "following"
-      ? refetchActivity
-      : tab === "releases"
-        ? refetchReleases
-        : refetchTrending;
+  const feedRows = useMemo(
+    () => collapsePushEvents(filteredEvents),
+    [filteredEvents],
+  );
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
-      );
-    }
-
-    switch (tab) {
-      case "all":
-      case "following":
-        return (
-          <FlatList
-            data={events}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => <EventCard event={item} />}
-            contentContainerStyle={styles.list}
-            onEndReached={() => hasNextPage && fetchNextPage()}
-            onEndReachedThreshold={0.3}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={refetch}
-                tintColor={theme.primary}
-              />
-            }
-            ListEmptyComponent={
-              <Text style={[styles.empty, { color: theme.subtle }]}>
-                {tab === "all" ? "No recent activity" : "Follow some users!"}
-              </Text>
-            }
-          />
-        );
-
-      case "releases":
-        return (
-          <FlatList
-            data={releasesData ?? []}
-            keyExtractor={item => String(item.id)}
-            renderItem={({ item }) => <ReleaseCard release={item} />}
-            contentContainerStyle={styles.list}
-            refreshControl={
-              <RefreshControl
-                refreshing={isReleasesRefetching}
-                onRefresh={refetchReleases}
-                tintColor={theme.primary}
-              />
-            }
-            ListEmptyComponent={
-              <Text style={[styles.empty, { color: theme.subtle }]}>
-                No releases from your repositories yet.
-              </Text>
-            }
-          />
-        );
-
-      case "trending":
-        return (
-          <View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.periodScroll}
-            >
-              {PERIODS.map(p => (
-                <Pressable
-                  key={p.value}
-                  onPress={() => setTrendingPeriod(p.value)}
-                  style={[
-                    styles.periodBtn,
-                    {
-                      backgroundColor:
-                        trendingPeriod === p.value
-                          ? theme.primary
-                          : theme.surface,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.periodBtnText,
-                      {
-                        color: trendingPeriod === p.value ? "#fff" : theme.text,
-                      },
-                    ]}
-                  >
-                    {p.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-            {isTrendingLoading ? (
-              <ActivityIndicator
-                style={styles.loader}
-                color={theme.primary}
-              />
-            ) : (
-              <FlatList
-                data={trendingData ?? []}
-                keyExtractor={item => String(item.id)}
-                renderItem={({ item, index }) => (
-                  <TrendingCard
-                    item={item}
-                    rank={index + 1}
-                  />
-                )}
-                contentContainerStyle={styles.list}
-                ListEmptyComponent={
-                  <Text style={[styles.empty, { color: theme.subtle }]}>
-                    No trending repos found.
-                  </Text>
-                }
-              />
-            )}
-          </View>
-        );
-    }
-  };
+  const isLoading = tab === "activity" ? isActivityLoading : isReleasesLoading;
+  const isRefetching =
+    tab === "activity" ? isActivityRefetching : isReleasesRefetching;
+  const refetch = tab === "activity" ? refetchActivity : refetchReleases;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Feed</Text>
-        <Pressable
-          onPress={() => setFilterVisible(true)}
-          style={({ pressed }) => [
-            styles.filterBtn,
-            pressed && { opacity: 0.6 },
-          ]}
-          accessibilityLabel="Filter events"
-        >
-          <Ionicons
-            name="options-outline"
-            size={22}
-            color={hasCustomFilter ? theme.primary : theme.subtle}
-          />
-          {hasCustomFilter && (
-            <View
-              style={[styles.filterDot, { backgroundColor: theme.primary }]}
+        {tab === "activity" && (
+          <Pressable
+            onPress={() => setFilterVisible(true)}
+            style={({ pressed }) => [
+              styles.filterBtn,
+              pressed && { opacity: 0.6 },
+            ]}
+            accessibilityLabel="Filter events"
+          >
+            <Ionicons
+              name="options-outline"
+              size={22}
+              color={hasCustomFilter ? theme.primary : theme.subtle}
             />
-          )}
-        </Pressable>
+            {hasCustomFilter && (
+              <View
+                style={[styles.filterDot, { backgroundColor: theme.primary }]}
+              />
+            )}
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.tabFilter}>
@@ -638,7 +549,71 @@ export default function FeedScreen() {
         onClose={() => setFilterVisible(false)}
       />
 
-      {renderContent()}
+      {isLoading ? (
+        <ActivityIndicator
+          style={styles.loader}
+          color={theme.primary}
+        />
+      ) : tab === "activity" ? (
+        <FlatList
+          data={feedRows}
+          keyExtractor={item =>
+            item.kind === "single" ? item.event.id : item.id
+          }
+          renderItem={({ item }) =>
+            item.kind === "single" ? (
+              <EventRow event={item.event} />
+            ) : (
+              <EventRow
+                event={item.latest}
+                pushCount={item.events.length}
+              />
+            )
+          }
+          contentContainerStyle={styles.list}
+          onEndReached={() => hasNextPage && fetchNextPage()}
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={theme.primary}
+            />
+          }
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: theme.subtle }]}>
+              No recent activity from people you follow
+            </Text>
+          }
+        />
+      ) : (
+        <FlatList
+          data={releasesData ?? []}
+          keyExtractor={item => String(item.id)}
+          renderItem={({ item }) => (
+            <ReleaseCard
+              release={item}
+              onPress={() => {
+                const [owner, repo] = item.repo.full_name.split("/");
+                if (owner && repo) router.push(`/repo/${owner}/${repo}`);
+              }}
+            />
+          )}
+          contentContainerStyle={styles.releasesList}
+          refreshControl={
+            <RefreshControl
+              refreshing={isReleasesRefetching}
+              onRefresh={refetchReleases}
+              tintColor={theme.primary}
+            />
+          }
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: theme.subtle }]}>
+              No releases from your repositories yet.
+            </Text>
+          }
+        />
+      )}
     </View>
   );
 }
@@ -664,7 +639,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: -1,
   },
-  tabFilter: { paddingHorizontal: 16, paddingBottom: 10 },
+  tabFilter: { paddingHorizontal: 16, paddingVertical: 10 },
   tabScroll: { gap: 8, paddingRight: 16 },
   tabBtn: {
     flexDirection: "row",
@@ -677,48 +652,24 @@ const styles = StyleSheet.create({
   },
   tabBtnText: { fontSize: 13, fontWeight: "600" },
   loader: { flex: 1 },
-  list: { padding: 12, gap: 10 },
-  // Event card
-  eventCard: {
+  list: { paddingBottom: 24 },
+  releasesList: { padding: 12, gap: 10 },
+  eventRow: {
     flexDirection: "row",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
   },
-  eventLeft: { alignItems: "center", width: 32 },
-  eventIconBadge: { marginTop: -8, borderRadius: 8, padding: 1 },
-  eventBody: { flex: 1, gap: 3 },
+  eventLeft: { alignItems: "center", width: 28 },
+  eventIconBadge: { marginTop: -6, borderRadius: 8, padding: 1 },
+  eventBody: { flex: 1, gap: 2 },
   eventActor: { fontSize: 14, fontWeight: "600" },
   eventLabel: { fontWeight: "400" },
   eventRepo: { fontWeight: "600" },
   eventMeta: { fontSize: 13 },
-  eventTime: { fontSize: 12 },
+  eventTime: { fontSize: 12, marginTop: 1 },
   empty: { textAlign: "center", marginTop: 80, fontSize: 15 },
-  // Trending card
-  periodFilter: { paddingHorizontal: 20, paddingBottom: 8 },
-  periodScroll: { gap: 8, paddingRight: 20 },
-  periodBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  periodBtnText: { fontSize: 13, fontWeight: "600" },
-  trendingCard: {
-    flexDirection: "row",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 10,
-    alignItems: "center",
-  },
-  rank: { fontSize: 13, fontWeight: "700", minWidth: 24 },
-  trendingInfo: { flex: 1 },
-  trendingName: { fontSize: 14, fontWeight: "600" },
-  trendingDesc: { fontSize: 12 },
-  trendingMeta: { flexDirection: "row", gap: 10, marginTop: 4 },
-  // Modal
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   backdropPress: {
     ...StyleSheet.absoluteFill,
