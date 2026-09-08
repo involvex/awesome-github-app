@@ -5,6 +5,7 @@ import {
   useRepoContents,
   useCreateFork,
   useBranches,
+  useRepoReleases,
 } from "../../../../lib/api/hooks";
 import {
   ActivityIndicator,
@@ -28,7 +29,15 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 
-const TABS = ["About", "Code", "Issues", "PRs", "Actions", "Branches"] as const;
+const TABS = [
+  "About",
+  "Code",
+  "Releases",
+  "Issues",
+  "PRs",
+  "Actions",
+  "Branches",
+] as const;
 type RepoTab = (typeof TABS)[number];
 
 interface ForkResult {
@@ -526,6 +535,97 @@ function BranchesTab({ owner, repo }: { owner: string; repo: string }) {
   );
 }
 
+function ReleasesTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const { data, isLoading } = useRepoReleases(owner, repo);
+
+  if (isLoading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons
+          name="rocket-outline"
+          size={32}
+          color={theme.muted}
+        />
+        <Text style={[styles.emptyTitle, { color: theme.text }]}>
+          No releases
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+          This repository has no published releases yet.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      {data.map(release => (
+        <Pressable
+          key={release.id}
+          style={[
+            styles.releaseCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          onPress={() => Linking.openURL(release.html_url)}
+        >
+          <View style={styles.releaseHeader}>
+            <Text style={[styles.releaseTag, { color: theme.primary }]}>
+              {release.tag_name}
+            </Text>
+            {release.prerelease && (
+              <View
+                style={[styles.prereleaseBadge, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.prereleaseText, { color: theme.subtle }]}>
+                  Pre-release
+                </Text>
+              </View>
+            )}
+            {release.draft && (
+              <View style={[styles.draftBadge, { borderColor: theme.border }]}>
+                <Text style={[styles.draftText, { color: theme.subtle }]}>
+                  Draft
+                </Text>
+              </View>
+            )}
+          </View>
+          {!!release.name && release.name !== release.tag_name && (
+            <Text style={[styles.releaseName, { color: theme.text }]}>
+              {release.name}
+            </Text>
+          )}
+          {!!release.body && (
+            <Text
+              style={[styles.releaseBody, { color: theme.subtle }]}
+              numberOfLines={3}
+            >
+              {release.body}
+            </Text>
+          )}
+          <View style={styles.releaseFooter}>
+            <Text style={[styles.releaseAuthor, { color: theme.muted }]}>
+              by {release.author}
+            </Text>
+            {release.published_at && (
+              <Text style={[styles.releaseDate, { color: theme.muted }]}>
+                {new Date(release.published_at).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function ComingSoonTab({
   name,
   icon,
@@ -823,6 +923,12 @@ export default function RepoDetailScreen() {
         )}
         {activeTab === "Code" && (
           <CodeTab
+            owner={owner!}
+            repo={repo!}
+          />
+        )}
+        {activeTab === "Releases" && (
+          <ReleasesTab
             owner={owner!}
             repo={repo!}
           />
@@ -1167,4 +1273,42 @@ const styles = StyleSheet.create({
   fileIcon: { width: 18 },
   fileName: { flex: 1, fontSize: 14 },
   fileSize: { fontSize: 12 },
+  releaseCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 12,
+  },
+  releaseHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  releaseTag: { fontSize: 15, fontWeight: "700" },
+  prereleaseBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  prereleaseText: { fontSize: 11, fontWeight: "600" },
+  draftBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  draftText: { fontSize: 11, fontWeight: "600" },
+  releaseName: { fontSize: 16, fontWeight: "600" },
+  releaseBody: { fontSize: 14, lineHeight: 20 },
+  releaseFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  releaseAuthor: { fontSize: 12 },
+  releaseDate: { fontSize: 12 },
 });

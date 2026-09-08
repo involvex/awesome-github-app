@@ -152,3 +152,37 @@ export function useBranches(owner: string, repo: string) {
     enabled: !!(owner && repo),
   });
 }
+
+export function useStarRepo(owner: string, repo: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const octokit = await getOctokit();
+      await octokit.activity.starRepoForAuthenticatedUser({
+        owner,
+        repo,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["repo", owner, repo] });
+      qc.invalidateQueries({ queryKey: ["myRepos"] });
+    },
+  });
+}
+
+export function useUnstarRepo(owner: string, repo: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const octokit = await getOctokit();
+      await octokit.activity.unstarRepoForAuthenticatedUser({
+        owner,
+        repo,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["repo", owner, repo] });
+      qc.invalidateQueries({ queryKey: ["myRepos"] });
+    },
+  });
+}

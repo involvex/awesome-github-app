@@ -15,7 +15,10 @@ export {
   useUpdateTopics,
   useCreateFork,
   useBranches,
+  useStarRepo,
+  useUnstarRepo,
 } from "./useRepo";
+export { useRepoReleases, type RepoRelease } from "./useRepoReleases";
 export {
   useNotifications,
   useMarkNotificationRead,

@@ -13,12 +13,12 @@ import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useSearch, useTrending } from "../../../lib/api/hooks";
 import { useSearchHistory } from "../../../lib/searchHistory";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingCard } from "../../../components/explore";
 import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useFavorites } from "../../../lib/favorites";
-import { useEffect, useMemo, useState } from "react";
 import { ChipFilter } from "../../../components/ui";
 import { useAppTheme } from "../../../lib/theme";
 import { haptic } from "../../../lib/haptics";
@@ -113,10 +113,12 @@ export default function ExploreScreen() {
   const params = useLocalSearchParams<{ q?: string | string[] }>();
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
+  const [suggestionsQuery, setSuggestionsQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("best-match");
   const [language, setLanguage] = useState("");
   const [starsMin, setStarsMin] = useState<StarsMin>("");
   const [showFilters, setShowFilters] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const {
     favorites,
     removeFavorite,
@@ -175,17 +177,59 @@ export default function ExploreScreen() {
   const handleSearch = (text: string) => {
     setQuery(text);
     const trimmed = text.trim();
-    if (trimmed.length >= 2) {
-      setActiveQuery(trimmed);
-      addSearch(trimmed);
-    } else if (trimmed.length === 0) {
+    if (trimmed.length === 0) {
       setActiveQuery("");
+      setSuggestionsQuery("");
       setSortBy("best-match");
       setLanguage("");
       setStarsMin("");
       setShowFilters(false);
     }
   };
+
+  const handleSubmitSearch = () => {
+    const trimmed = query.trim();
+    if (trimmed.length >= 2) {
+      setActiveQuery(trimmed);
+      setSuggestionsQuery("");
+      addSearch(trimmed);
+    }
+  };
+
+  const handleSuggestionPress = (suggestion: SearchRepoItem) => {
+    const fullName = suggestion.full_name ?? suggestion.name;
+    setQuery(fullName);
+    setActiveQuery(fullName);
+    setSuggestionsQuery("");
+    addSearch(fullName);
+  };
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length >= 2 && !activeQuery) {
+      debounceRef.current = setTimeout(() => {
+        setSuggestionsQuery(trimmed);
+      }, 300);
+    } else {
+      setSuggestionsQuery("");
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, activeQuery]);
+
+  const { data: suggestionsData, isLoading: isSuggestionsLoading } = useSearch(
+    suggestionsQuery,
+    "repositories",
+    {
+      sort: undefined,
+      order: "desc",
+    },
+  );
+  const suggestions = (
+    (suggestionsData?.pages[0] ?? []) as SearchRepoItem[]
+  ).slice(0, 8);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -236,6 +280,7 @@ export default function ExploreScreen() {
               placeholderTextColor={theme.muted}
               value={query}
               onChangeText={handleSearch}
+              onSubmitEditing={handleSubmitSearch}
               returnKeyType="search"
             />
             {query.length > 0 && (
@@ -253,6 +298,71 @@ export default function ExploreScreen() {
               </Pressable>
             )}
           </View>
+          {suggestionsQuery.length >= 2 && !activeQuery && (
+            <View
+              style={[
+                styles.suggestionsDropdown,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              {isSuggestionsLoading ? (
+                <ActivityIndicator
+                  style={{ paddingVertical: 12 }}
+                  color={theme.primary}
+                />
+              ) : suggestions.length === 0 ? (
+                <View style={styles.suggestionEmpty}>
+                  <Text
+                    style={[
+                      styles.suggestionEmptyText,
+                      { color: theme.subtle },
+                    ]}
+                  >
+                    No suggestions found
+                  </Text>
+                </View>
+              ) : (
+                suggestions.map(item => (
+                  <Pressable
+                    key={item.id}
+                    style={[
+                      styles.suggestionRow,
+                      { borderBottomColor: theme.border },
+                    ]}
+                    onPress={() => {
+                      haptic("light");
+                      handleSuggestionPress(item);
+                    }}
+                  >
+                    <Avatar
+                      uri={item.owner?.avatar_url}
+                      name={item.owner?.login ?? ""}
+                      size={28}
+                    />
+                    <View style={styles.suggestionInfo}>
+                      <Text
+                        style={[styles.suggestionName, { color: theme.text }]}
+                      >
+                        {item.full_name}
+                      </Text>
+                      {!!item.description && (
+                        <Text
+                          style={[
+                            styles.suggestionDesc,
+                            { color: theme.subtle },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.description}
+                        </Text>
+                      )}
+                    </View>
+                    <LanguageDot language={item.language} />
+                  </Pressable>
+                ))
+              )}
+            </View>
+          )}
           {!!activeQuery && (
             <Pressable
               style={[
@@ -879,4 +989,23 @@ const styles = StyleSheet.create({
   },
   historyText: { fontSize: 13, fontWeight: "500" },
   historyRemove: { padding: 2 },
+  suggestionsDropdown: {
+    maxHeight: 360,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  suggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  suggestionInfo: { flex: 1, gap: 2 },
+  suggestionName: { fontSize: 14, fontWeight: "600" },
+  suggestionDesc: { fontSize: 13 },
+  suggestionEmpty: {
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  suggestionEmptyText: { fontSize: 14 },
 });

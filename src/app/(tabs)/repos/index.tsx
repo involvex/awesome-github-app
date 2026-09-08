@@ -7,10 +7,16 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useMyRepos, type RepoFilter } from "../../../lib/api/hooks";
+import {
+  useMyRepos,
+  useStarRepo,
+  useUnstarRepo,
+  type RepoFilter,
+} from "../../../lib/api/hooks";
 import { SkeletonCard, EmptyState } from "../../../components/ui";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
+import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
@@ -31,9 +37,41 @@ const FILTERS: { label: string; value: RepoFilter }[] = [
   { label: "Forked", value: "forks" },
 ];
 
-function RepoCard({ item }: { item: MyRepo }) {
+function RepoCard({
+  item,
+  isStarred,
+  onToggleStar,
+}: {
+  item: MyRepo;
+  isStarred: boolean;
+  onToggleStar: (next: boolean) => void;
+}) {
   const theme = useAppTheme();
   const router = useRouter();
+  const { showToast } = useToast();
+  const starMutation = useStarRepo(item.owner.login, item.name);
+  const unstarMutation = useUnstarRepo(item.owner.login, item.name);
+
+  async function handleStarPress() {
+    if (isStarred) {
+      try {
+        await unstarMutation.mutateAsync();
+        onToggleStar(false);
+        haptic("success");
+      } catch {
+        showToast("Failed to unstar repository", "error");
+      }
+    } else {
+      try {
+        await starMutation.mutateAsync();
+        onToggleStar(true);
+        haptic("success");
+      } catch {
+        showToast("Failed to star repository", "error");
+      }
+    }
+  }
+
   return (
     <Pressable
       style={[
@@ -73,6 +111,19 @@ function RepoCard({ item }: { item: MyRepo }) {
             </Text>
           </View>
         )}
+        <Pressable
+          hitSlop={8}
+          onPress={handleStarPress}
+          accessibilityLabel={
+            isStarred ? "Unstar repository" : "Star repository"
+          }
+        >
+          <Ionicons
+            name={isStarred ? "star" : "star-outline"}
+            size={18}
+            color={isStarred ? theme.primary : theme.muted}
+          />
+        </Pressable>
       </View>
       {!!item.description && (
         <Text
@@ -105,6 +156,7 @@ export default function ReposScreen() {
   const theme = useAppTheme();
   const [filter, setFilter] = useState<RepoFilter>("owner");
   const [search, setSearch] = useState("");
+  const [starredSet, setStarredSet] = useState<Set<number | string>>(new Set());
   const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
     useMyRepos(filter, "updated");
   const allRepos = data?.pages.flat() ?? [];
@@ -156,7 +208,20 @@ export default function ReposScreen() {
         <FlatList
           data={filtered}
           keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => <RepoCard item={item} />}
+          renderItem={({ item }) => (
+            <RepoCard
+              item={item}
+              isStarred={starredSet.has(item.id)}
+              onToggleStar={next =>
+                setStarredSet(prev => {
+                  const nextSet = new Set(prev);
+                  if (next) nextSet.add(item.id);
+                  else nextSet.delete(item.id);
+                  return nextSet;
+                })
+              }
+            />
+          )}
           contentContainerStyle={styles.list}
           onEndReached={() => hasNextPage && fetchNextPage()}
           onEndReachedThreshold={0.4}

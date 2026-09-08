@@ -2,26 +2,26 @@
 
 ## Overview
 
-This report identifies high-impact improvements, missing features, and optimizations for the **awesome-github-app** GitHub mobile client. Suggestions are grouped by priority and include specific implementation notes where applicable.
+This report identifies high-impact improvements, missing features, and optimizations for the **awesome-github-app** GitHub mobile client. Suggestions are grouped by priority and include specific implementation notes where applicable. Items marked **[DONE]** have been implemented in recent commits.
 
 ---
 
 ## High Priority Suggestions
 
-| ID       | Category | Description                                                                                        | Impact | Effort | Confidence |
-| -------- | -------- | -------------------------------------------------------------------------------------------------- | ------ | ------ | ---------- |
-| FEAT-001 | Feature  | Implement Issues and PR tabs in repo detail (currently "Coming Soon" placeholders)                 | High   | High   | 95%        |
-| FEAT-002 | Testing  | Add unit tests for API hooks (`useActivity`, `useNotifications`, `useTrending`, etc.)              | High   | Medium | 95%        |
-| FEAT-003 | Feature  | Implement Issues list screen with labels, assignees, and state filters                             | High   | High   | 90%        |
-| FEAT-004 | Feature  | Implement PR list with merge status, review state, and actionable merge buttons                    | High   | High   | 90%        |
-| FEAT-005 | UX       | Add skeleton loaders to all list screens (repos, notifications, profile) for consistent loading UX | High   | Low    | 95%        |
-| FEAT-006 | Testing  | Add integration tests for auth flow, navigation, and data fetching                                 | High   | Medium | 90%        |
-| FEAT-007 | Feature  | Add Releases tab to repo detail with release notes, asset downloads, and tag browser               | High   | Medium | 90%        |
-| FEAT-008 | UX       | Implement optimistic updates for star/watch/unstar actions with rollback on error                  | High   | Medium | 85%        |
+| ID       | Category | Description                                                                                        | Impact | Effort | Confidence | Status  |
+| -------- | -------- | -------------------------------------------------------------------------------------------------- | ------ | ------ | ---------- | ------- |
+| FEAT-001 | Feature  | Implement Issues and PR tabs in repo detail (currently "Coming Soon" placeholders)                 | High   | High   | 95%        | Open    |
+| FEAT-002 | Testing  | Add unit tests for API hooks (`useActivity`, `useNotifications`, `useTrending`, etc.)              | High   | Medium | 95%        | Open    |
+| FEAT-003 | Feature  | Implement Issues list screen with labels, assignees, and state filters                             | High   | High   | 90%        | Open    |
+| FEAT-004 | Feature  | Implement PR list with merge status, review state, and actionable merge buttons                    | High   | High   | 90%        | Open    |
+| FEAT-005 | UX       | Add skeleton loaders to all list screens (repos, notifications, profile) for consistent loading UX | High   | Low    | 95%        | Partial |
+| FEAT-006 | Testing  | Add integration tests for auth flow, navigation, and data fetching                                 | High   | Medium | 90%        | Open    |
+| FEAT-007 | Feature  | Add Releases tab to repo detail with release notes, asset downloads, and tag browser               | High   | Medium | 90%        | Open    |
+| FEAT-008 | UX       | Implement optimistic updates for star/watch/unstar actions with rollback on error                  | High   | Medium | 85%        | Open    |
 
 ### FEAT-001 — Issues & PR Tabs in Repo Detail
 
-**Current state:** `src/app/repo/[owner]/[repo]/index.tsx` renders `ComingSoonTab` placeholders for Issues and PRs (lines 887–898).
+**Current state:** `src/app/repo/[owner]/[repo]/index.tsx` renders `ComingSoonTab` placeholders for Issues and PRs.
 **Suggested improvement:** Replace placeholders with full list screens. Use `useInfiniteQuery` for pagination, support state filters (open/closed/all), labels, and assignees. Deep-link from notifications to specific issues/PRs.
 **Impact:** Core GitHub workflow — reading and managing issues/PRs is essential for a GitHub client.
 
@@ -45,8 +45,8 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ### FEAT-005 — Skeleton Loaders Everywhere
 
-**Current state:** Skeleton components exist (`Skeleton.tsx`, `SkeletonCard.tsx`) but are only used in a few places (e.g., trending loading state).
-**Suggested improvement:** Replace all `ActivityIndicator` spinners in list screens with skeleton loaders matching the row/card layout. This includes repos list, notifications, profile pinned repos, and starred repos.
+**Current state:** **[DONE]** Skeleton components wired into repos and notifications. Profile and starred repos still use `ActivityIndicator`.
+**Suggested improvement:** Replace remaining spinners in profile contribution graph and starred repos menu.
 **Impact:** Perceived performance and visual polish — spinners feel slow; skeletons feel fast.
 
 ### FEAT-006 — Integration Tests
@@ -71,25 +71,24 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ## Medium Priority Suggestions
 
-| ID       | Category | Description                                                                       | Impact | Effort | Confidence |
-| -------- | -------- | --------------------------------------------------------------------------------- | ------ | ------ | ---------- |
-| FEAT-009 | Feature  | Add search history with recent searches persisted locally                         | Medium | Low    | 95%        |
-| FEAT-010 | Feature  | Implement deep-linking from notifications to issues/PRs                           | Medium | Medium | 90%        |
-| FEAT-011 | Feature  | Add star/unstar and watch/unwatch quick actions on repo cards                     | Medium | Medium | 85%        |
-| FEAT-012 | UX       | Add haptic feedback on interactive elements (buttons, toggles, list item presses) | Medium | Low    | 90%        |
-| FEAT-013 | Feature  | Add "Contributors" and "Stargazers" tabs to repo detail                           | Medium | Medium | 85%        |
-| FEAT-014 | Feature  | Add file content viewer for non-markdown files in Code tab                        | Medium | Medium | 80%        |
-| FEAT-015 | UX       | Implement pull-to-refresh on notifications, profile, and repos screens            | Medium | Low    | 90%        |
-| FEAT-016 | Feature  | Add search suggestions/autocomplete as user types in explore search               | Medium | Medium | 85%        |
-| FEAT-017 | Feature  | Add repo insights tab (traffic, commits, dependents)                              | Medium | High   | 75%        |
-| FEAT-018 | Feature  | Add organization profile support (org repos, org members)                         | Medium | Medium | 85%        |
-| FEAT-019 | UX       | Add empty state illustrations and branded empty screens across all lists          | Medium | Low    | 90%        |
-| FEAT-020 | Feature  | Add "Open in GitHub" / "Copy link" actions on repo, issue, and PR screens         | Medium | Low    | 95%        |
+| ID       | Category | Description                                                                       | Impact | Effort | Confidence | Status |
+| -------- | -------- | --------------------------------------------------------------------------------- | ------ | ------ | ---------- | ------ |
+| FEAT-009 | Feature  | Add search history with recent searches persisted locally                         | Medium | Low    | 95%        | DONE   |
+| FEAT-010 | Feature  | Implement deep-linking from notifications to issues/PRs                           | Medium | Medium | 90%        | Open   |
+| FEAT-011 | Feature  | Add star/unstar and watch/unwatch quick actions on repo cards                     | Medium | Medium | 85%        | Open   |
+| FEAT-012 | UX       | Add haptic feedback on interactive elements (buttons, toggles, list item presses) | Medium | Low    | 90%        | DONE   |
+| FEAT-013 | Feature  | Add "Contributors" and "Stargazers" tabs to repo detail                           | Medium | Medium | 85%        | Open   |
+| FEAT-014 | Feature  | Add file content viewer for non-markdown files in Code tab                        | Medium | Medium | 80%        | Open   |
+| FEAT-015 | UX       | Implement pull-to-refresh on notifications, profile, and repos screens            | Medium | Low    | 90%        | DONE   |
+| FEAT-016 | Feature  | Add search suggestions/autocomplete as user types in explore search               | Medium | Medium | 85%        | Open   |
+| FEAT-017 | Feature  | Add repo insights tab (traffic, commits, dependents)                              | Medium | High   | 75%        | Open   |
+| FEAT-018 | Feature  | Add organization profile support (org repos, org members)                         | Medium | Medium | 85%        | Open   |
+| FEAT-019 | UX       | Add empty state illustrations and branded empty screens across all lists          | Medium | Low    | 90%        | DONE   |
+| FEAT-020 | Feature  | Add "Open in GitHub" / "Copy link" actions on repo, issue, and PR screens         | Medium | Low    | 95%        | DONE   |
 
 ### FEAT-009 — Search History
 
-**Current state:** Search queries are not persisted; each app launch starts fresh.
-**Suggested improvement:** Store recent searches in AsyncStorage alongside favorites. Display them as a history section in the explore screen when the search bar is focused but empty.
+**Current state:** **[DONE]** Recent searches are persisted in AsyncStorage and displayed in the explore home screen with individual remove and bulk clear functionality.
 **Impact:** Power users run the same searches repeatedly; history reduces friction.
 
 ### FEAT-010 — Notification Deep-Linking
@@ -106,8 +105,7 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ### FEAT-012 — Haptic Feedback
 
-**Current state:** No haptic feedback is used anywhere in the app.
-**Suggested improvement:** Add `expo-haptics` (or `react-native-reanimated` haptic worklets) to: button presses, toggle switches, tab switches, star/unstar actions, and notification mark-read. Use `ImpactFeedbackStyle.Medium` for most actions, `NotificationFeedbackType.Success` for completed mutations.
+**Current state:** **[DONE]** `expo-haptics` added with a shared `haptic()` helper. Applied to feed tabs, filter toggles, event cards, explore repo rows, notification rows, and mark-read buttons.
 **Impact:** Tactile feedback dramatically improves mobile app feel and perceived responsiveness.
 
 ### FEAT-013 — Contributors & Stargazers Tabs
@@ -124,8 +122,8 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ### FEAT-015 — Pull-to-Refresh on More Screens
 
-**Current state:** Pull-to-refresh exists on Feed, Explore search results, Notifications, and Repos list. Missing on: Profile, Starred Repos, Trending, and repo detail tabs.
-**Suggested improvement:** Add `RefreshControl` to all scrollable screens.
+**Current state:** **[DONE]** Pull-to-refresh added to profile, starred repos, and notifications. Feed and explore already had it.
+**Suggested improvement:** Add to trending screen and repo detail tabs.
 **Impact:** Consistent interaction pattern across the app.
 
 ### FEAT-016 — Search Suggestions/Autocomplete
@@ -148,42 +146,47 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ### FEAT-019 — Branded Empty States
 
-**Current state:** Empty states are plain text (e.g., "No repositories found.") with no visual context.
-**Suggested improvement:** Add `EmptyState` component usage across all list screens with an icon, title, and subtitle. Use existing `EmptyState` component from `src/components/ui/EmptyState.tsx`.
+**Current state:** **[DONE]** `EmptyState` component wired into repos, notifications, and profile pinned repos.
 **Impact:** Polished feel; reduces perceived "broken" state when lists are empty.
 
 ### FEAT-020 — Share & Copy Link Actions
 
-**Current state:** Share exists on repo detail. Copy link exists for clone command only.
-**Suggested improvement:** Add "Copy link" and "Share" actions to: issue/PR screens (when implemented), specific file entries in Code tab, and user profiles.
+**Current state:** **[DONE]** Copy profile link added to profile header. Copy + share actions added to public user profile screen.
+**Suggested improvement:** Extend to repo detail and, later, issue/PR screens.
 **Impact:** Sharing specific code references and issues is a common mobile workflow.
 
 ---
 
 ## Low Priority Suggestions
 
-| ID       | Category | Description                                                                          | Impact | Effort | Confidence |
-| -------- | -------- | ------------------------------------------------------------------------------------ | ------ | ------ | ---------- |
-| FEAT-021 | Feature  | Add multi-account support (switch between GitHub accounts)                           | Low    | High   | 70%        |
-| FEAT-022 | Feature  | Add GitHub Discussions support (list, view, create)                                  | Low    | High   | 70%        |
-| FEAT-023 | Feature  | Add GitHub Projects (v2) board/list view                                             | Low    | High   | 60%        |
-| FEAT-024 | Feature  | Add repo Wiki support (view and edit wiki pages)                                     | Low    | Medium | 70%        |
-| FEAT-025 | Feature  | Add GitHub Packages support (view and download package assets)                       | Low    | High   | 60%        |
-| FEAT-026 | UX       | Add notification sound customization per notification type                           | Low    | Low    | 80%        |
-| FEAT-027 | UX       | Add compact/dense list mode toggle (already in preferences, needs UI implementation) | Low    | Low    | 90%        |
-| FEAT-028 | Feature  | Add saved searches with alerts                                                       | Low    | High   | 60%        |
-| FEAT-029 | UX       | Add onboarding/tutorial screens for first-time users                                 | Low    | Medium | 85%        |
-| FEAT-030 | Feature  | Add GitHub Sponsors integration (view sponsors, sponsor tiers)                       | Low    | High   | 60%        |
-| FEAT-031 | UX       | Add widget support (iOS/Android home screen widgets for notifications/feed)          | Low    | High   | 50%        |
-| FEAT-032 | Feature  | Add code search within repository (search file contents)                             | Low    | Medium | 75%        |
-| FEAT-033 | Feature  | Add branch comparison view (diff between two branches)                               | Low    | Medium | 75%        |
-| FEAT-034 | UX       | Add iPad/tablet adaptive layout (two-pane master-detail)                             | Low    | High   | 70%        |
-| FEAT-035 | Feature  | Add issue/PR creation flow with template support                                     | Low    | High   | 75%        |
-| FEAT-036 | UX       | Add offline mode with cached data and sync-on-reconnect                              | Low    | High   | 65%        |
-| FEAT-037 | Feature  | Add GitHub CLI-style command palette for power users                                 | Low    | Medium | 60%        |
-| FEAT-038 | Feature  | Add dependency graph and security advisory views                                     | Low    | High   | 60%        |
-| FEAT-039 | UX       | Add accessibility labels and screen reader support audit                             | Low    | Medium | 90%        |
-| FEAT-040 | DX       | Add Storybook or component explorer for UI primitives                                | Low    | Medium | 80%        |
+| ID       | Category | Description                                                                          | Impact | Effort | Confidence | Status  |
+| -------- | -------- | ------------------------------------------------------------------------------------ | ------ | ------ | ---------- | ------- |
+| FEAT-021 | Feature  | Add multi-account support (switch between GitHub accounts)                           | Low    | High   | 70%        | Open    |
+| FEAT-022 | Feature  | Add GitHub Discussions support (list, view, create)                                  | Low    | High   | 70%        | Open    |
+| FEAT-023 | Feature  | Add GitHub Projects (v2) board/list view                                             | Low    | High   | 60%        | Open    |
+| FEAT-024 | Feature  | Add repo Wiki support (view and edit wiki pages)                                     | Low    | Medium | 70%        | Open    |
+| FEAT-025 | Feature  | Add GitHub Packages support (view and download package assets)                       | Low    | High   | 60%        | Open    |
+| FEAT-026 | UX       | Add notification sound customization per notification type                           | Low    | Low    | 80%        | Open    |
+| FEAT-027 | UX       | Add compact/dense list mode toggle (already in preferences, needs UI implementation) | Low    | Low    | 90%        | Open    |
+| FEAT-028 | Feature  | Add saved searches with alerts                                                       | Low    | High   | 60%        | Open    |
+| FEAT-029 | UX       | Add onboarding/tutorial screens for first-time users                                 | Low    | Medium | 85%        | Open    |
+| FEAT-030 | Feature  | Add GitHub Sponsors integration (view sponsors, sponsor tiers)                       | Low    | High   | 60%        | Open    |
+| FEAT-031 | UX       | Add widget support (iOS/Android home screen widgets for notifications/feed)          | Low    | High   | 50%        | Partial |
+| FEAT-032 | Feature  | Add code search within repository (search file contents)                             | Low    | Medium | 75%        | Open    |
+| FEAT-033 | Feature  | Add branch comparison view (diff between two branches)                               | Low    | Medium | 75%        | Open    |
+| FEAT-034 | UX       | Add iPad/tablet adaptive layout (two-pane master-detail)                             | Low    | High   | 70%        | Open    |
+| FEAT-035 | Feature  | Add issue/PR creation flow with template support                                     | Low    | High   | 75%        | Open    |
+| FEAT-036 | UX       | Add offline mode with cached data and sync-on-reconnect                              | Low    | High   | 65%        | Open    |
+| FEAT-037 | Feature  | Add GitHub CLI-style command palette for power users                                 | Low    | Medium | 60%        | Open    |
+| FEAT-038 | Feature  | Add dependency graph and security advisory views                                     | Low    | High   | 60%        | Open    |
+| FEAT-039 | UX       | Add accessibility labels and screen reader support audit                             | Low    | Medium | 90%        | Open    |
+| FEAT-040 | DX       | Add Storybook or component explorer for UI primitives                                | Low    | Medium | 80%        | Open    |
+
+### FEAT-031 — Widget Support
+
+**Current state:** **[PARTIAL]** Android notification widget foundation implemented: widget data layer, config plugin, layout XML, and `AppWidgetProvider`. iOS widget not started.
+**Suggested improvement:** Complete Android notification widget testing, then add feed and trending widgets. Investigate iOS WidgetKit extension if needed.
+**Impact:** Home screen widgets provide at-a-glance access to notifications and trending repos.
 
 ---
 
@@ -191,35 +194,33 @@ This report identifies high-impact improvements, missing features, and optimizat
 
 ### Security
 
-| ID      | Category | Description                                                                             | Impact | Effort |
-| ------- | -------- | --------------------------------------------------------------------------------------- | ------ | ------ |
-| SEC-001 | Security | Add token expiry handling and proactive refresh before expiration                       | High   | Medium |
-| SEC-002 | Security | Implement rate-limit awareness (parse `X-RateLimit-*` headers, show warnings, back off) | Medium | Low    |
-| SEC-003 | Security | Add request signing/verification for Cloudflare Worker token exchange                   | Medium | Medium |
+| ID      | Category | Description                                                                             | Impact | Effort | Status  |
+| ------- | -------- | --------------------------------------------------------------------------------------- | ------ | ------ | ------- |
+| SEC-001 | Security | Add token expiry handling and proactive refresh before expiration                       | High   | Medium | Open    |
+| SEC-002 | Security | Implement rate-limit awareness (parse `X-RateLimit-*` headers, show warnings, back off) | Medium | Low    | Partial |
+| SEC-003 | Security | Add request signing/verification for Cloudflare Worker token exchange                   | Medium | Medium | Open    |
 
 **SEC-001:** Currently, the token is stored indefinitely with no expiry handling. If GitHub revokes the token, the app silently fails. Add a check on app launch and intercept 401 responses to trigger re-auth.
 
-**SEC-002:** The app does not track GitHub API rate limits. Heavy users will hit the 5,000-request/hour limit and experience opaque failures. Parse response headers and surface a warning when approaching limits.
+**SEC-002:** **[PARTIAL]** `src/lib/rateLimit.ts` helper created but not yet wired into the UI or called automatically. Should be integrated to show warnings when approaching limits.
 
 ### Performance
 
-| ID       | Category     | Description                                                       | Impact | Effort |
-| -------- | ------------ | ----------------------------------------------------------------- | ------ | ------ |
-| PERF-001 | Optimization | Implement image caching strategy with `expo-image` cache policies | Medium | Low    |
-| PERF-002 | Optimization | Add request deduplication for concurrent identical queries        | Medium | Low    |
-| PERF-003 | Optimization | Lazy-load non-critical screens and heavy components               | Medium | Low    |
+| ID       | Category     | Description                                                       | Impact | Effort | Status |
+| -------- | ------------ | ----------------------------------------------------------------- | ------ | ------ | ------ |
+| PERF-001 | Optimization | Implement image caching strategy with `expo-image` cache policies | Medium | Low    | DONE   |
+| PERF-002 | Optimization | Add request deduplication for concurrent identical queries        | Medium | Low    | Open   |
+| PERF-003 | Optimization | Lazy-load non-critical screens and heavy components               | Medium | Low    | Open   |
 
-**PERF-001:** `expo-image` is used for avatars but may not have optimal cache policies configured. Set `cachePolicy="memory-disk"` for avatars and `cachePolicy="disk"` for repo covers.
-
-**PERF-002:** TanStack Query already deduplicates, but custom hooks may fire redundant requests. Audit hooks for overlapping `queryKey` patterns and unnecessary refetches.
+**PERF-001:** **[DONE]** `cachePolicy="memory-disk"` added to `Avatar` component.
 
 ### Maintainability
 
-| ID        | Category | Description                                                                   | Impact | Effort |
-| --------- | -------- | ----------------------------------------------------------------------------- | ------ | ------ |
-| MAINT-001 | Refactor | Extract repeated style patterns into shared style utilities                   | Medium | Low    |
-| MAINT-002 | Refactor | Add error boundaries to catch render errors in nested screens                 | Medium | Low    |
-| MAINT-003 | DX       | Add a `scripts/smoke.sh` or `scripts/smoke.ps1` for quick manual QA checklist | Medium | Low    |
+| ID        | Category | Description                                                                   | Impact | Effort | Status |
+| --------- | -------- | ----------------------------------------------------------------------------- | ------ | ------ | ------ |
+| MAINT-001 | Refactor | Extract repeated style patterns into shared style utilities                   | Medium | Low    | Open   |
+| MAINT-002 | Refactor | Add error boundaries to catch render errors in nested screens                 | Medium | Low    | Open   |
+| MAINT-003 | DX       | Add a `scripts/smoke.sh` or `scripts/smoke.ps1` for quick manual QA checklist | Medium | Low    | Open   |
 
 ---
 
@@ -241,11 +242,32 @@ Recommended test additions in priority order:
 
 ---
 
-## Suggested Next Implementation Steps
+## Completion Summary
 
-1. **Implement Issues and PR tabs** — unblock the two largest "Coming Soon" gaps in repo detail
-2. **Add hook unit tests** — protect the data layer as new features are built on top of it
-3. **Replace spinners with skeletons** — quick visual win across all list screens
-4. **Add optimistic updates + haptics** — pair these for a noticeable UX improvement
-5. **Implement notification deep-linking** — complete the notification→issue/PR flow
-6. **Add search history** — low effort, high value for repeat users
+| Category                 | Total  | Done  | Partial | Open   |
+| ------------------------ | ------ | ----- | ------- | ------ |
+| High Priority Features   | 8      | 0     | 1       | 7      |
+| Medium Priority Features | 12     | 4     | 0       | 8      |
+| Low Priority Features    | 20     | 0     | 1       | 19     |
+| Security                 | 3      | 0     | 1       | 2      |
+| Performance              | 3      | 1     | 0       | 2      |
+| Maintainability          | 3      | 0     | 0       | 3      |
+| **Total**                | **49** | **5** | **3**   | **41** |
+
+---
+
+## Next Recommended Features
+
+Based on current progress, the highest-impact next features are:
+
+1. **FEAT-001 + FEAT-003 + FEAT-004** — Issues and PRs are the largest remaining gaps and core GitHub workflows. Implementing these unblocks the most user-facing functionality.
+
+2. **FEAT-002** — Hook unit tests. The data layer is growing; adding tests now prevents regressions as new features are built.
+
+3. **FEAT-011** — Star/unstar quick actions on repo cards. Low complexity, high user value, and pairs naturally with optimistic updates (FEAT-008).
+
+4. **FEAT-010** — Notification deep-linking. Completes the notification flow and is a natural companion to the Issues/PRs work.
+
+5. **FEAT-007** — Releases tab in repo detail. Uses existing `useReleases` hook; medium effort, high value for release-heavy workflows.
+
+6. **FEAT-016** — Search suggestions/autocomplete. Builds on the existing search infrastructure and search history.
