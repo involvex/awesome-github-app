@@ -18,12 +18,13 @@ import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
 import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
+import { getItem, setItem } from "../../../lib/storage";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
 import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 
 type MyRepo = NonNullable<
   ReturnType<typeof useMyRepos>["data"]
@@ -157,8 +158,28 @@ export default function ReposScreen() {
   const [filter, setFilter] = useState<RepoFilter>("owner");
   const [search, setSearch] = useState("");
   const [starredSet, setStarredSet] = useState<Set<number | string>>(new Set());
+  const [starredLoaded, setStarredLoaded] = useState(false);
   const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
     useMyRepos(filter, "updated");
+
+  useEffect(() => {
+    getItem("starred_repo_ids").then(stored => {
+      if (stored) {
+        try {
+          const ids = JSON.parse(stored) as (number | string)[];
+          setStarredSet(new Set(ids));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      setStarredLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!starredLoaded) return;
+    setItem("starred_repo_ids", JSON.stringify([...starredSet]));
+  }, [starredSet, starredLoaded]);
   const allRepos = data?.pages.flat() ?? [];
   const filtered = search
     ? allRepos.filter((r: MyRepo) =>

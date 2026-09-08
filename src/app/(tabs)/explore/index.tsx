@@ -8,9 +8,14 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { SearchRepoItem, RepoSortOption } from "../../../lib/api/hooks";
+import type {
+  SearchRepoItem,
+  SearchUserItem,
+  RepoSortOption,
+} from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useSearch, useTrending } from "../../../lib/api/hooks";
+import { SkeletonCard } from "../../../components/ui/Skeleton";
 import { useSearchHistory } from "../../../lib/searchHistory";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -196,8 +201,16 @@ export default function ExploreScreen() {
     }
   };
 
-  const handleSuggestionPress = (suggestion: SearchRepoItem) => {
-    const fullName = suggestion.full_name ?? suggestion.name;
+  const handleSuggestionPress = (suggestion: SuggestionItem) => {
+    if (suggestion.kind === "user") {
+      const login = suggestion.data.login;
+      setQuery(login);
+      setActiveQuery(login);
+      setSuggestionsQuery("");
+      addSearch(login);
+      return;
+    }
+    const fullName = suggestion.data.full_name ?? suggestion.data.name;
     setQuery(fullName);
     setActiveQuery(fullName);
     setSuggestionsQuery("");
@@ -219,7 +232,7 @@ export default function ExploreScreen() {
     };
   }, [query, activeQuery]);
 
-  const { data: suggestionsData, isLoading: isSuggestionsLoading } = useSearch(
+  const { data: reposSuggestions, isLoading: isReposLoading } = useSearch(
     suggestionsQuery,
     "repositories",
     {
@@ -227,9 +240,42 @@ export default function ExploreScreen() {
       order: "desc",
     },
   );
-  const suggestions = (
-    (suggestionsData?.pages[0] ?? []) as SearchRepoItem[]
-  ).slice(0, 8);
+  const { data: usersSuggestions, isLoading: isUsersLoading } = useSearch(
+    suggestionsQuery,
+    "users",
+    {
+      sort: undefined,
+      order: "desc",
+    },
+  );
+  const { data: topicsSuggestions, isLoading: isTopicsLoading } = useSearch(
+    suggestionsQuery,
+    "topics",
+    {
+      sort: undefined,
+      order: "desc",
+    },
+  );
+
+  const isSuggestionsLoading =
+    isReposLoading || isUsersLoading || isTopicsLoading;
+
+  type SuggestionItem =
+    | { kind: "repo"; data: SearchRepoItem }
+    | { kind: "user"; data: SearchUserItem }
+    | { kind: "topic"; data: SearchRepoItem };
+
+  const suggestions: SuggestionItem[] = [
+    ...((reposSuggestions?.pages[0] ?? []) as SearchRepoItem[])
+      .slice(0, 4)
+      .map(data => ({ kind: "repo" as const, data })),
+    ...((usersSuggestions?.pages[0] ?? []) as SearchUserItem[])
+      .slice(0, 3)
+      .map(data => ({ kind: "user" as const, data })),
+    ...((topicsSuggestions?.pages[0] ?? []) as SearchRepoItem[])
+      .slice(0, 3)
+      .map(data => ({ kind: "topic" as const, data })),
+  ];
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -306,10 +352,11 @@ export default function ExploreScreen() {
               ]}
             >
               {isSuggestionsLoading ? (
-                <ActivityIndicator
-                  style={{ paddingVertical: 12 }}
-                  color={theme.primary}
-                />
+                <View style={styles.suggestionsSkeleton}>
+                  {[1, 2, 3].map(i => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </View>
               ) : suggestions.length === 0 ? (
                 <View style={styles.suggestionEmpty}>
                   <Text
@@ -322,44 +369,107 @@ export default function ExploreScreen() {
                   </Text>
                 </View>
               ) : (
-                suggestions.map(item => (
-                  <Pressable
-                    key={item.id}
-                    style={[
-                      styles.suggestionRow,
-                      { borderBottomColor: theme.border },
-                    ]}
-                    onPress={() => {
-                      haptic("light");
-                      handleSuggestionPress(item);
-                    }}
-                  >
-                    <Avatar
-                      uri={item.owner?.avatar_url}
-                      name={item.owner?.login ?? ""}
-                      size={28}
-                    />
-                    <View style={styles.suggestionInfo}>
-                      <Text
-                        style={[styles.suggestionName, { color: theme.text }]}
-                      >
-                        {item.full_name}
-                      </Text>
-                      {!!item.description && (
+                suggestions.map((item, idx) => {
+                  const key =
+                    item.kind === "user"
+                      ? String(item.data.id)
+                      : `suggestion-${idx}`;
+                  return (
+                    <Pressable
+                      key={key}
+                      style={[
+                        styles.suggestionRow,
+                        { borderBottomColor: theme.border },
+                      ]}
+                      onPress={() => {
+                        haptic("light");
+                        handleSuggestionPress(item);
+                      }}
+                    >
+                      <Avatar
+                        uri={
+                          item.kind === "user"
+                            ? (item.data as SearchUserItem).avatar_url
+                            : (item.data as SearchRepoItem).owner?.avatar_url
+                        }
+                        name={
+                          item.kind === "user"
+                            ? (item.data as SearchUserItem).login
+                            : ((item.data as SearchRepoItem).owner?.login ?? "")
+                        }
+                        size={28}
+                      />
+                      <View style={styles.suggestionInfo}>
                         <Text
-                          style={[
-                            styles.suggestionDesc,
-                            { color: theme.subtle },
-                          ]}
-                          numberOfLines={1}
+                          style={[styles.suggestionName, { color: theme.text }]}
                         >
-                          {item.description}
+                          {item.kind === "user"
+                            ? (item.data as SearchUserItem).login
+                            : (item.data as SearchRepoItem).full_name}
                         </Text>
+                        {item.kind === "repo" && !!item.data.description && (
+                          <Text
+                            style={[
+                              styles.suggestionDesc,
+                              { color: theme.subtle },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.data.description}
+                          </Text>
+                        )}
+                        {item.kind === "topic" && !!item.data.description && (
+                          <Text
+                            style={[
+                              styles.suggestionDesc,
+                              { color: theme.subtle },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {item.data.description}
+                          </Text>
+                        )}
+                      </View>
+                      {item.kind === "topic" ? (
+                        <View
+                          style={[
+                            styles.topicBadge,
+                            { borderColor: theme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.topicBadgeText,
+                              { color: theme.primary },
+                            ]}
+                          >
+                            Topic
+                          </Text>
+                        </View>
+                      ) : item.kind === "user" ? (
+                        <View
+                          style={[
+                            styles.userBadge,
+                            { borderColor: theme.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.userBadgeText,
+                              { color: theme.subtle },
+                            ]}
+                          >
+                            User
+                          </Text>
+                        </View>
+                      ) : (
+                        <LanguageDot
+                          language={(item.data as SearchRepoItem).language}
+                        />
                       )}
-                    </View>
-                    <LanguageDot language={item.language} />
-                  </Pressable>
-                ))
+                    </Pressable>
+                  );
+                })
               )}
             </View>
           )}
@@ -1008,4 +1118,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   suggestionEmptyText: { fontSize: 14 },
+  suggestionsSkeleton: { padding: 12, gap: 10 },
+  topicBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  topicBadgeText: { fontSize: 11, fontWeight: "600" },
+  userBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  userBadgeText: { fontSize: 11, fontWeight: "600" },
 });

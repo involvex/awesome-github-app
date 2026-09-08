@@ -2,7 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Octokit } from "@octokit/rest";
 import { getOctokit } from "../github";
 
-export type SearchType = "repositories" | "users" | "issues";
+export type SearchType = "repositories" | "users" | "topics" | "issues";
 
 type OctokitInst = InstanceType<typeof Octokit>;
 export type SearchRepoItem = Awaited<
@@ -38,6 +38,15 @@ export function useSearch(
           per_page: 30,
           page: pageParam,
           ...(sort ? { sort, order } : {}),
+        });
+        return data.items;
+      } else if (type === "topics") {
+        const { data } = await octokit.search.repos({
+          q: `topic:${query}`,
+          per_page: 30,
+          page: pageParam,
+          sort: "stars",
+          order: "desc",
         });
         return data.items;
       } else if (type === "users") {
