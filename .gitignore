@@ -24,5 +24,7 @@ workers/oauth-token-exchange/wrangler.toml
 .mcp.json
 coverage
 
+REVIEW.md
+
 .env*.local
 *.log
