@@ -5,17 +5,23 @@ import {
   View,
   Pressable,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import type { ContributionDay, ContributionWeek } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
+import { Avatar, EmptyState } from "../../../components/ui";
+import { useToast } from "../../../contexts/ToastContext";
 import { useContributions } from "../../../lib/api/hooks";
 import { StatBar } from "../../../components/ui/StatBar";
 import { useAuth } from "../../../contexts/AuthContext";
 import { usePinnedRepos } from "../../../lib/api/hooks";
-import { Avatar } from "../../../components/ui/Avatar";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppTheme } from "../../../lib/theme";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 
 function ContributionGraph({ username }: { username: string }) {
   const theme = useAppTheme();
@@ -76,13 +82,39 @@ const cgStyles = StyleSheet.create({
 export default function ProfileScreen() {
   const theme = useAppTheme();
   const router = useRouter();
+  const { showToast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const {
     data: pinnedData,
     isLoading: pinsLoading,
     isError: pinsError,
+    refetch: refetchPinned,
   } = usePinnedRepos();
   const pinnedRepos = pinnedData?.repos ?? [];
+
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+
+  async function handlePullRefresh() {
+    setPullRefreshing(true);
+    try {
+      await Promise.all([
+        refetchPinned(),
+        queryClient.invalidateQueries({
+          queryKey: ["contributions", user?.login],
+        }),
+      ]);
+    } finally {
+      setPullRefreshing(false);
+    }
+  }
+
+  async function handleCopyProfileLink() {
+    if (!user?.html_url) return;
+    await Clipboard.setStringAsync(user.html_url);
+    showToast("Profile link copied", "success");
+    haptic("success");
+  }
 
   if (!user) return null;
 
@@ -90,6 +122,13 @@ export default function ProfileScreen() {
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={styles.scroll}
+      refreshControl={
+        <RefreshControl
+          refreshing={pullRefreshing}
+          onRefresh={handlePullRefresh}
+          tintColor={theme.primary}
+        />
+      }
     >
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <View style={styles.headerRow}>
@@ -97,6 +136,13 @@ export default function ProfileScreen() {
             Profile
           </Text>
           <View style={styles.headerActions}>
+            <Pressable onPress={handleCopyProfileLink}>
+              <Ionicons
+                name="copy-outline"
+                size={22}
+                color={theme.text}
+              />
+            </Pressable>
             <Pressable onPress={() => router.push("/(tabs)/profile/menu")}>
               <Ionicons
                 name="star-outline"
@@ -219,27 +265,17 @@ export default function ProfileScreen() {
         {pinsLoading ? (
           <ActivityIndicator color={theme.primary} />
         ) : pinsError ? (
-          <View style={styles.sectionEmpty}>
-            <Ionicons
-              name="warning-outline"
-              size={16}
-              color={theme.muted}
-            />
-            <Text style={[styles.emptyText, { color: theme.subtle }]}>
-              Unable to load pinned repositories.
-            </Text>
-          </View>
+          <EmptyState
+            icon="warning-outline"
+            title="Unable to load pinned repositories"
+            description="Pull to refresh or try again later."
+          />
         ) : pinnedRepos.length === 0 ? (
-          <View style={styles.sectionEmpty}>
-            <Ionicons
-              name="bookmark-outline"
-              size={16}
-              color={theme.muted}
-            />
-            <Text style={[styles.emptyText, { color: theme.subtle }]}>
-              Pin repositories on GitHub to see them here.
-            </Text>
-          </View>
+          <EmptyState
+            icon="bookmark-outline"
+            title="No pinned repositories"
+            description="Pin repositories on GitHub to see them here."
+          />
         ) : (
           <View style={styles.pinnedList}>
             {pinnedRepos.map(repo => (

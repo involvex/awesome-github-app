@@ -11,6 +11,7 @@ import {
 import type { SearchRepoItem, RepoSortOption } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { useSearch, useTrending } from "../../../lib/api/hooks";
+import { useSearchHistory } from "../../../lib/searchHistory";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { TrendingCard } from "../../../components/explore";
 import { useToast } from "../../../contexts/ToastContext";
@@ -20,6 +21,7 @@ import { useFavorites } from "../../../lib/favorites";
 import { useEffect, useMemo, useState } from "react";
 import { ChipFilter } from "../../../components/ui";
 import { useAppTheme } from "../../../lib/theme";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 
 type SortOption = "best-match" | RepoSortOption;
@@ -71,7 +73,10 @@ function RepoRow({ item }: { item: SearchRepoItem }) {
   return (
     <Pressable
       style={[styles.repoRow, { borderBottomColor: theme.border }]}
-      onPress={() => router.push(`/repo/${item.owner?.login}/${item.name}`)}
+      onPress={() => {
+        haptic("light");
+        router.push(`/repo/${item.owner?.login}/${item.name}`);
+      }}
     >
       <Avatar
         uri={item.owner?.avatar_url}
@@ -117,6 +122,12 @@ export default function ExploreScreen() {
     removeFavorite,
     isLoading: isFavoritesLoading,
   } = useFavorites();
+  const {
+    history,
+    addSearch,
+    removeSearch: removeSearchHistory,
+    clearHistory,
+  } = useSearchHistory();
   const { showToast } = useToast();
 
   const incomingQuery = useMemo(() => {
@@ -164,8 +175,10 @@ export default function ExploreScreen() {
   const handleSearch = (text: string) => {
     setQuery(text);
     const trimmed = text.trim();
-    if (trimmed.length >= 1) setActiveQuery(trimmed);
-    else {
+    if (trimmed.length >= 2) {
+      setActiveQuery(trimmed);
+      addSearch(trimmed);
+    } else if (trimmed.length === 0) {
       setActiveQuery("");
       setSortBy("best-match");
       setLanguage("");
@@ -226,7 +239,12 @@ export default function ExploreScreen() {
               returnKeyType="search"
             />
             {query.length > 0 && (
-              <Pressable onPress={() => handleSearch("")}>
+              <Pressable
+                onPress={() => {
+                  haptic("light");
+                  handleSearch("");
+                }}
+              >
                 <Ionicons
                   name="close-circle"
                   size={16}
@@ -250,7 +268,10 @@ export default function ExploreScreen() {
                       : theme.border,
                 },
               ]}
-              onPress={() => setShowFilters(v => !v)}
+              onPress={() => {
+                haptic("selection");
+                setShowFilters(v => !v);
+              }}
               accessibilityRole="button"
               accessibilityLabel="Toggle filters"
             >
@@ -348,6 +369,64 @@ export default function ExploreScreen() {
         </>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
+          {history.length > 0 && (
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Recent Searches
+              </Text>
+              <Pressable
+                onPress={() => {
+                  haptic("medium");
+                  clearHistory();
+                  showToast("Search history cleared", "success");
+                }}
+              >
+                <Text style={[styles.clearText, { color: theme.primary }]}>
+                  Clear
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          {history.length > 0 && (
+            <View style={styles.historyRow}>
+              {history.map(item => (
+                <Pressable
+                  key={item.id}
+                  style={[
+                    styles.historyChip,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    haptic("light");
+                    handleSearch(item.query);
+                  }}
+                >
+                  <Text style={[styles.historyText, { color: theme.text }]}>
+                    {item.query}
+                  </Text>
+                  <Pressable
+                    style={styles.historyRemove}
+                    onPress={e => {
+                      e?.stopPropagation?.();
+                      haptic("light");
+                      removeSearchHistory(item.query);
+                      showToast("Search removed", "success");
+                    }}
+                  >
+                    <Ionicons
+                      name="close"
+                      size={12}
+                      color={theme.muted}
+                    />
+                  </Pressable>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
               Trending
@@ -782,4 +861,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
+  clearText: { fontSize: 13, fontWeight: "600" },
+  historyRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  historyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  historyText: { fontSize: 13, fontWeight: "500" },
+  historyRemove: { padding: 2 },
 });

@@ -5,7 +5,6 @@ import {
   type NotificationThread,
 } from "../../../lib/api/hooks";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -13,12 +12,14 @@ import {
   Text,
   View,
 } from "react-native";
+import { Badge, SkeletonCard, EmptyState } from "../../../components/ui";
+import { setNotificationWidgetData } from "../../../lib/widgetData";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "../../../contexts/ToastContext";
-import { Badge } from "../../../components/ui/Badge";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useState } from "react";
 
 type Segment = "all" | "participating" | "assigned" | "mentioned";
 
@@ -61,6 +62,7 @@ function NotifRow({
       ]}
       disabled={isMarking || !isUnread}
       onPress={() => {
+        haptic("light");
         if (isUnread) onMarkRead(item.id);
       }}
     >
@@ -92,6 +94,7 @@ function NotifRow({
         <Pressable
           onPress={e => {
             e?.stopPropagation?.();
+            haptic("success");
             onMarkRead(item.id);
           }}
           disabled={isMarking}
@@ -164,6 +167,17 @@ export default function NotificationsScreen() {
   const unreadCount = (data ?? []).filter(
     (n: NotificationThread) => n.unread,
   ).length;
+  const prevUnreadCountRef = useRef(unreadCount);
+
+  useEffect(() => {
+    if (prevUnreadCountRef.current !== unreadCount) {
+      prevUnreadCountRef.current = unreadCount;
+      setNotificationWidgetData({
+        unreadCount,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+  }, [unreadCount]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -224,10 +238,11 @@ export default function NotificationsScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
+        <View style={styles.skeletonList}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -247,11 +262,17 @@ export default function NotificationsScreen() {
             />
           }
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              {segment === "all"
-                ? "You're all caught up!"
-                : `No ${segment} notifications.`}
-            </Text>
+            <EmptyState
+              icon="checkmark-done-outline"
+              title={
+                segment === "all"
+                  ? "You're all caught up!"
+                  : `No ${segment} notifications.`
+              }
+              description={
+                segment === "all" ? "New activity will appear here." : undefined
+              }
+            />
           }
           contentContainerStyle={{ paddingBottom: 40 }}
         />
@@ -281,7 +302,7 @@ const styles = StyleSheet.create({
   },
   segment: { flex: 1, paddingVertical: 7, alignItems: "center" },
   segmentText: { fontSize: 12, fontWeight: "600" },
-  loader: { flex: 1 },
+  skeletonList: { padding: 12, gap: 10 },
   row: {
     flexDirection: "row",
     paddingVertical: 14,

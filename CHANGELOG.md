@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Features
+
+- Add Android home screen widgets for notifications, feed, and trending repos
+- Add haptic feedback helper and apply to interactive elements
+- Replace spinners with skeleton loaders across list screens
+- Add branded empty states to repos, notifications, and profile screens
+- Add share and copy-link actions to profiles and repo detail
+- Add search history with persisted recent searches
+- Add pull-to-refresh on profile, starred repos, and trending screens
+- Add rate-limit awareness with toast warnings
+- Add expo-image cache policies for avatars and repo images
+
 ## [0.0.17](https://github.com/involvex/awesome-github-app/compare/0.0.16...0.0.17) (2026-07-27)
 
 ### Features

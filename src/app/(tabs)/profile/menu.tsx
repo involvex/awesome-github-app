@@ -2,6 +2,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -13,8 +14,8 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
 
 export default function ProfileMenuScreen() {
   const theme = useAppTheme();
@@ -31,6 +32,17 @@ export default function ProfileMenuScreen() {
   } = useStarredRepos(user?.login ?? "");
 
   const items = useMemo(() => data?.pages.flatMap(page => page) ?? [], [data]);
+
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+
+  async function handlePullRefresh() {
+    setPullRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setPullRefreshing(false);
+    }
+  }
 
   if (!user) return null;
 
@@ -135,6 +147,13 @@ export default function ProfileMenuScreen() {
                 color={theme.primary}
               />
             ) : null
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={pullRefreshing}
+              onRefresh={handlePullRefresh}
+              tintColor={theme.primary}
+            />
           }
         />
       )}

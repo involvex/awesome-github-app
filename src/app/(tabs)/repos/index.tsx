@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -9,11 +8,13 @@ import {
   View,
 } from "react-native";
 import { useMyRepos, type RepoFilter } from "../../../lib/api/hooks";
+import { SkeletonCard, EmptyState } from "../../../components/ui";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
 import { StatBar } from "../../../components/ui/StatBar";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -39,7 +40,10 @@ function RepoCard({ item }: { item: MyRepo }) {
         styles.card,
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
-      onPress={() => router.push(`/repo/${item.owner.login}/${item.name}`)}
+      onPress={() => {
+        haptic("light");
+        router.push(`/repo/${item.owner.login}/${item.name}`);
+      }}
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.repoName, { color: theme.primary }]}>
@@ -143,10 +147,11 @@ export default function ReposScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
+        <View style={styles.skeletonList}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -162,9 +167,15 @@ export default function ReposScreen() {
             />
           }
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              No repositories found.
-            </Text>
+            <EmptyState
+              icon="book-outline"
+              title="No repositories found"
+              description={
+                search
+                  ? "Try a different search term or filter."
+                  : "Repos will appear here once you have some."
+              }
+            />
           }
         />
       )}
@@ -193,6 +204,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14 },
   loader: { flex: 1 },
+  skeletonList: { padding: 12, gap: 10 },
   list: { padding: 12, gap: 10 },
   card: {
     borderRadius: 12,

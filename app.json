@@ -16,7 +16,13 @@
       "expo-secure-store",
       "expo-notifications",
       "expo-splash-screen",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "./plugins/withAndroidNotificationWidget",
+        {
+          "widgetsFolder": "widgets/NotificationWidget"
+        }
+      ]
     ],
     "android": {
       "package": "com.involvex.awesomegithubapp",

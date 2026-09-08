@@ -15,6 +15,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
@@ -223,6 +224,7 @@ function EventRow({
     <View style={[styles.eventRow, { borderBottomColor: theme.border }]}>
       <Pressable
         onPress={() => {
+          haptic("light");
           if (event.actor?.login) router.push(`/user/${event.actor.login}`);
         }}
         accessibilityRole="button"
@@ -244,6 +246,7 @@ function EventRow({
       <Pressable
         style={styles.eventBody}
         onPress={() => {
+          haptic("light");
           if (repoPath) {
             router.push(`/repo/${repoPath.owner}/${repoPath.repo}`);
           }
@@ -254,6 +257,7 @@ function EventRow({
         <Text style={[styles.eventActor, { color: theme.text }]}>
           <Text
             onPress={() => {
+              haptic("light");
               if (event.actor?.login) router.push(`/user/${event.actor.login}`);
             }}
             style={{ color: theme.text, fontWeight: "600" }}
@@ -354,7 +358,10 @@ function FilterModal({
               return (
                 <Pressable
                   key={et.value}
-                  onPress={() => toggle(et.value)}
+                  onPress={() => {
+                    haptic("light");
+                    toggle(et.value);
+                  }}
                   style={({ pressed }) => [
                     styles.filterRow,
                     { borderBottomColor: theme.border },
@@ -409,7 +416,10 @@ function FilterModal({
           </ScrollView>
           <View style={[styles.sheetFooter, { borderTopColor: theme.border }]}>
             <Pressable
-              onPress={() => setDraft([...ALL_FILTERS])}
+              onPress={() => {
+                haptic("medium");
+                setDraft([...ALL_FILTERS]);
+              }}
               style={({ pressed }) => [
                 styles.btnReset,
                 { borderColor: theme.border },
@@ -421,7 +431,10 @@ function FilterModal({
               </Text>
             </Pressable>
             <Pressable
-              onPress={handleSave}
+              onPress={() => {
+                haptic("success");
+                handleSave();
+              }}
               style={({ pressed }) => [
                 styles.btnSave,
                 { backgroundColor: theme.primary },
@@ -484,7 +497,10 @@ export default function FeedScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>Feed</Text>
         {tab === "activity" && (
           <Pressable
-            onPress={() => setFilterVisible(true)}
+            onPress={() => {
+              haptic("light");
+              setFilterVisible(true);
+            }}
             style={({ pressed }) => [
               styles.filterBtn,
               pressed && { opacity: 0.6 },
@@ -514,7 +530,10 @@ export default function FeedScreen() {
           {FEED_TABS.map(t => (
             <Pressable
               key={t.value}
-              onPress={() => setTab(t.value)}
+              onPress={() => {
+                haptic("selection");
+                setTab(t.value);
+              }}
               style={[
                 styles.tabBtn,
                 {
