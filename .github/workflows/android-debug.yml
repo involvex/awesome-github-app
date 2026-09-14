@@ -28,16 +28,16 @@ jobs:
           java-version: "17"
           distribution: temurin
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Accept Android licenses and install NDK
         run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls "$ANDROID_HOME/cmdline-tools" || true
           yes | sdkmanager --licenses > /dev/null || true
           for i in 1 2 3; do
-            sdkmanager --install "ndk;27.1.12297006" --verbose && break || {
+            sdkmanager --install "ndk;27.1.12297006" && break || {
               echo "NDK install attempt $i failed, clearing corrupted downloads and retrying..."
-              rm -rf "$ANDROID_HOME/.temp" "$ANDROID_HOME/.downloadIntermediates" 2>/dev/null || true
+              rm -rf "$ANDROID_HOME/.temp" || true
               sleep 10
             }
           done
