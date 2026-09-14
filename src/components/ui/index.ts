@@ -6,7 +6,7 @@ export { Card } from "./Card";
 export { Input } from "./Input";
 export { Avatar } from "./Avatar";
 export { Badge } from "./Badge";
-export { Skeleton, SkeletonCard } from "./Skeleton";
+export { Skeleton, SkeletonCard, SkeletonContributionGraph } from "./Skeleton";
 export { ChipFilter } from "./ChipFilter";
 export { LanguageDot } from "./LanguageDot";
 export { StatBar } from "./StatBar";

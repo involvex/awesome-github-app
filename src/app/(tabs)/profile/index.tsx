@@ -7,9 +7,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import {
+  Avatar,
+  EmptyState,
+  SkeletonContributionGraph,
+} from "../../../components/ui";
 import type { ContributionDay, ContributionWeek } from "../../../lib/api/hooks";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
-import { Avatar, EmptyState } from "../../../components/ui";
 import { useToast } from "../../../contexts/ToastContext";
 import { useContributions } from "../../../lib/api/hooks";
 import { StatBar } from "../../../components/ui/StatBar";
@@ -27,13 +31,7 @@ function ContributionGraph({ username }: { username: string }) {
   const theme = useAppTheme();
   const { data, isLoading } = useContributions(username);
 
-  if (isLoading)
-    return (
-      <ActivityIndicator
-        color={theme.primary}
-        style={{ marginVertical: 20 }}
-      />
-    );
+  if (isLoading) return <SkeletonContributionGraph />;
   if (!data) return null;
 
   return (

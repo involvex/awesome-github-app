@@ -275,6 +275,10 @@ export default function NotificationsScreen() {
             />
           }
           contentContainerStyle={{ paddingBottom: 40 }}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
         />
       )}
     </View>

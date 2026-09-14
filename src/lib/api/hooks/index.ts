@@ -17,6 +17,14 @@ export {
   useBranches,
   useStarRepo,
   useUnstarRepo,
+  useWatchRepo,
+  useUnwatchRepo,
+  useIssues,
+  usePullRequests,
+  type Issue,
+  type PullRequest,
+  type IssueState,
+  type PRState,
 } from "./useRepo";
 export { useRepoReleases, type RepoRelease } from "./useRepoReleases";
 export {
