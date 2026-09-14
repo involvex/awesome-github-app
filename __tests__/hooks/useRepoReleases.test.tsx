@@ -2,9 +2,9 @@ import { render, waitFor } from "@testing-library/react-native";
 import { QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
+import { createQueryClient, renderHookAndWait } from "../test-utils/render";
 import { useRepoReleases } from "../../src/lib/api/hooks/useRepoReleases";
 import { repoReleasesFixture } from "../test-utils/fixtures";
-import { createQueryClient } from "../test-utils/render";
 
 const mockedGetOctokit = jest.fn();
 
@@ -122,13 +122,13 @@ describe("useRepoReleases hook", () => {
     mockedGetOctokit.mockResolvedValue({ repos: { listReleases } });
     const client = createQueryClient();
 
-    const { result } = renderHookWithClient(
+    const result = await renderHookAndWait(
       () => useRepoReleases("octocat", "awesome-github-app"),
       client,
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.[0]).toMatchObject({
+    expect(result.isSuccess).toBe(true);
+    expect(result.data?.[0]).toMatchObject({
       id: 1000,
       name: "v1.0.0",
       tag_name: "v1.0.0",
@@ -163,13 +163,13 @@ describe("useRepoReleases hook", () => {
     mockedGetOctokit.mockResolvedValue({ repos: { listReleases } });
     const client = createQueryClient();
 
-    const { result } = renderHookWithClient(
+    const result = await renderHookAndWait(
       () => useRepoReleases("octocat", "awesome-github-app"),
       client,
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.[0]).toMatchObject({
+    expect(result.isSuccess).toBe(true);
+    expect(result.data?.[0]).toMatchObject({
       name: null,
       body: null,
       author: "unknown",
@@ -216,20 +216,3 @@ describe("useRepoReleases hook", () => {
     expect(states[0]?.isLoading).toBe(false);
   });
 });
-
-function renderHookWithClient<T>(
-  hook: () => T,
-  client = createQueryClient(),
-): { result: { current: T } } {
-  const result: { current: T | undefined } = { current: undefined };
-  const Test = () => {
-    result.current = hook();
-    return null;
-  };
-  render(
-    <QueryClientProvider client={client}>
-      <Test />
-    </QueryClientProvider>,
-  );
-  return { result: { current: result.current! } };
-}

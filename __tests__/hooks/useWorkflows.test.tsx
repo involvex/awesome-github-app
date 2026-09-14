@@ -1,7 +1,3 @@
-import { render, waitFor } from "@testing-library/react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
-
 import {
   useWorkflows,
   useWorkflowRuns,
@@ -10,48 +6,18 @@ import {
   useDownloadArtifact,
   useCancelRun,
 } from "../../src/lib/api/hooks/useWorkflows";
+import {
+  createQueryClient,
+  renderHookAndWait,
+  renderHookForMutation,
+} from "../test-utils/render";
 import { workflowsFixture, workflowRunsFixture } from "../test-utils/fixtures";
-import { createQueryClient } from "../test-utils/render";
 
 const mockedGetOctokit = jest.fn();
 
 jest.mock("../../src/lib/api/github", () => ({
   getOctokit: () => mockedGetOctokit(),
 }));
-
-function WorkflowsConsumer({
-  owner,
-  repo,
-  onState,
-}: {
-  owner: string;
-  repo: string;
-  onState: (state: ReturnType<typeof useWorkflows>) => void;
-}) {
-  const state = useWorkflows(owner, repo);
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
-
-function WorkflowRunsConsumer({
-  owner,
-  repo,
-  workflowId,
-  onState,
-}: {
-  owner: string;
-  repo: string;
-  workflowId?: number;
-  onState: (state: ReturnType<typeof useWorkflowRuns>) => void;
-}) {
-  const state = useWorkflowRuns(owner, repo, workflowId);
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
 
 describe("useWorkflows hooks", () => {
   beforeEach(() => {
@@ -64,26 +30,15 @@ describe("useWorkflows hooks", () => {
         .fn()
         .mockResolvedValue({ data: { workflows: workflowsFixture } });
       mockedGetOctokit.mockResolvedValue({ actions: { listRepoWorkflows } });
-      const states: ReturnType<typeof useWorkflows>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <WorkflowsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useWorkflows("octocat", "awesome-github-app"),
+        client,
       );
 
-      await waitFor(() =>
-        expect(
-          states.find(
-            s => s.isSuccess && s.data?.length === workflowsFixture.length,
-          ),
-        ).toBeTruthy(),
-      );
+      expect(result.isSuccess).toBe(true);
+      expect(result.data).toHaveLength(workflowsFixture.length);
       expect(listRepoWorkflows).toHaveBeenCalledWith({
         owner: "octocat",
         repo: "awesome-github-app",
@@ -94,22 +49,15 @@ describe("useWorkflows hooks", () => {
       const error = new Error("boom");
       const listRepoWorkflows = jest.fn().mockRejectedValue(error);
       mockedGetOctokit.mockResolvedValue({ actions: { listRepoWorkflows } });
-      const states: ReturnType<typeof useWorkflows>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <WorkflowsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useWorkflows("octocat", "awesome-github-app"),
+        client,
       );
 
-      await waitFor(() =>
-        expect(states.some(s => s.isError && s.error === error)).toBe(true),
-      );
+      expect(result.isError).toBe(true);
+      expect(result.error).toBe(error);
     });
   });
 
@@ -119,27 +67,15 @@ describe("useWorkflows hooks", () => {
         .fn()
         .mockResolvedValue({ data: { workflow_runs: workflowRunsFixture } });
       mockedGetOctokit.mockResolvedValue({ actions: { listWorkflowRuns } });
-      const states: ReturnType<typeof useWorkflowRuns>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <WorkflowRunsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            workflowId={100}
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useWorkflowRuns("octocat", "awesome-github-app", 100),
+        client,
       );
 
-      await waitFor(() =>
-        expect(
-          states.find(
-            s => s.isSuccess && s.data?.length === workflowRunsFixture.length,
-          ),
-        ).toBeTruthy(),
-      );
+      expect(result.isSuccess).toBe(true);
+      expect(result.data).toHaveLength(workflowRunsFixture.length);
       expect(listWorkflowRuns).toHaveBeenCalledWith({
         owner: "octocat",
         repo: "awesome-github-app",
@@ -155,27 +91,15 @@ describe("useWorkflows hooks", () => {
       mockedGetOctokit.mockResolvedValue({
         actions: { listWorkflowRunsForRepo },
       });
-      const states: ReturnType<typeof useWorkflowRuns>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <WorkflowRunsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            workflowId={undefined}
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useWorkflowRuns("octocat", "awesome-github-app", undefined),
+        client,
       );
 
-      await waitFor(() =>
-        expect(
-          states.find(
-            s => s.isSuccess && s.data?.length === workflowRunsFixture.length,
-          ),
-        ).toBeTruthy(),
-      );
+      expect(result.isSuccess).toBe(true);
+      expect(result.data).toHaveLength(workflowRunsFixture.length);
       expect(listWorkflowRunsForRepo).toHaveBeenCalledWith({
         owner: "octocat",
         repo: "awesome-github-app",
@@ -187,23 +111,15 @@ describe("useWorkflows hooks", () => {
       const error = new Error("boom");
       const listWorkflowRuns = jest.fn().mockRejectedValue(error);
       mockedGetOctokit.mockResolvedValue({ actions: { listWorkflowRuns } });
-      const states: ReturnType<typeof useWorkflowRuns>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <WorkflowRunsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            workflowId={100}
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useWorkflowRuns("octocat", "awesome-github-app", 100),
+        client,
       );
 
-      await waitFor(() =>
-        expect(states.some(s => s.isError && s.error === error)).toBe(true),
-      );
+      expect(result.isError).toBe(true);
+      expect(result.error).toBe(error);
     });
   });
 
@@ -218,7 +134,7 @@ describe("useWorkflows hooks", () => {
         .spyOn(client, "invalidateQueries")
         .mockImplementation(() => Promise.resolve());
 
-      const { result } = renderHookWithClient(
+      const { result } = await renderHookForMutation(
         () => useDispatchWorkflow("octocat", "awesome-github-app"),
         client,
       );
@@ -245,25 +161,15 @@ describe("useWorkflows hooks", () => {
       mockedGetOctokit.mockResolvedValue({
         actions: { listWorkflowRunArtifacts },
       });
-      const states: ReturnType<typeof useRunArtifacts>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <RunArtifactsConsumer
-            owner="octocat"
-            repo="awesome-github-app"
-            runId={10000}
-            onState={s => states.push(s)}
-          />
-        </QueryClientProvider>,
+      const result = await renderHookAndWait(
+        () => useRunArtifacts("octocat", "awesome-github-app", 10000),
+        client,
       );
 
-      await waitFor(() =>
-        expect(
-          states.find(s => s.isSuccess && s.data?.length === 1),
-        ).toBeTruthy(),
-      );
+      expect(result.isSuccess).toBe(true);
+      expect(result.data).toHaveLength(1);
     });
   });
 
@@ -275,7 +181,7 @@ describe("useWorkflows hooks", () => {
       mockedGetOctokit.mockResolvedValue({ actions: { downloadArtifact } });
       const client = createQueryClient();
 
-      const { result } = renderHookWithClient(
+      const { result } = await renderHookForMutation(
         () => useDownloadArtifact("octocat", "awesome-github-app"),
         client,
       );
@@ -294,7 +200,7 @@ describe("useWorkflows hooks", () => {
         .spyOn(client, "invalidateQueries")
         .mockImplementation(() => Promise.resolve());
 
-      const { result } = renderHookWithClient(
+      const { result } = await renderHookForMutation(
         () => useCancelRun("octocat", "awesome-github-app"),
         client,
       );
@@ -312,38 +218,3 @@ describe("useWorkflows hooks", () => {
     });
   });
 });
-
-function RunArtifactsConsumer({
-  owner,
-  repo,
-  runId,
-  onState,
-}: {
-  owner: string;
-  repo: string;
-  runId: number | null;
-  onState: (state: ReturnType<typeof useRunArtifacts>) => void;
-}) {
-  const state = useRunArtifacts(owner, repo, runId);
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
-
-function renderHookWithClient<T>(
-  hook: () => T,
-  client = createQueryClient(),
-): { result: { current: T } } {
-  const result: { current: T | undefined } = { current: undefined };
-  const Test = () => {
-    result.current = hook();
-    return null;
-  };
-  render(
-    <QueryClientProvider client={client}>
-      <Test />
-    </QueryClientProvider>,
-  );
-  return { result: { current: result.current! } };
-}

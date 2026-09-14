@@ -1,10 +1,9 @@
-import { render, waitFor } from "@testing-library/react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react-native";
 import React from "react";
 
+import { createQueryClient, renderHookAndWait } from "../test-utils/render";
 import { usePinnedRepos } from "../../src/lib/api/hooks/usePinnedRepos";
 import { pinnedReposFixture } from "../test-utils/fixtures";
-import { createQueryClient } from "../test-utils/render";
 
 const mockedGetGraphQL = jest.fn();
 
@@ -12,25 +11,13 @@ jest.mock("../../src/lib/api/graphql", () => ({
   getGraphQL: () => mockedGetGraphQL(),
 }));
 
-function PinnedReposConsumer({
-  onState,
-}: {
-  onState: (state: ReturnType<typeof usePinnedRepos>) => void;
-}) {
-  const state = usePinnedRepos();
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
-
 describe("usePinnedRepos hook", () => {
   beforeEach(() => {
     mockedGetGraphQL.mockReset();
   });
 
   test("fetches pinned repositories", async () => {
-    mockedGetGraphQL.mockResolvedValue({
+    const mockGql = jest.fn().mockResolvedValue({
       viewer: {
         pinnedItems: {
           totalCount: pinnedReposFixture.totalCount,
@@ -38,33 +25,21 @@ describe("usePinnedRepos hook", () => {
         },
       },
     });
-    const states: ReturnType<typeof usePinnedRepos>[] = [];
+    mockedGetGraphQL.mockResolvedValue(mockGql);
     const client = createQueryClient();
 
-    render(
-      <QueryClientProvider client={client}>
-        <PinnedReposConsumer onState={s => states.push(s)} />
-      </QueryClientProvider>,
-    );
+    const result = await renderHookAndWait(() => usePinnedRepos(), client);
 
-    await waitFor(() =>
-      expect(
-        states.find(
-          s =>
-            s.isSuccess &&
-            s.data?.totalCount === pinnedReposFixture.totalCount &&
-            s.data?.repos.length === pinnedReposFixture.repos.length,
-        ),
-      ).toBeTruthy(),
-    );
-    expect(mockedGetGraphQL).toHaveBeenCalledWith(
+    expect(result.isSuccess).toBe(true);
+    expect(result.data?.totalCount).toBe(pinnedReposFixture.totalCount);
+    expect(result.data?.repos).toHaveLength(pinnedReposFixture.repos.length);
+    expect(mockGql).toHaveBeenCalledWith(
       expect.stringContaining("pinnedItems"),
-      undefined,
     );
   });
 
   test("filters non-repository nodes", async () => {
-    mockedGetGraphQL.mockResolvedValue({
+    const mockGql = jest.fn().mockResolvedValue({
       viewer: {
         pinnedItems: {
           totalCount: 3,
@@ -77,53 +52,24 @@ describe("usePinnedRepos hook", () => {
         },
       },
     });
-    const states: ReturnType<typeof usePinnedRepos>[] = [];
+    mockedGetGraphQL.mockResolvedValue(mockGql);
     const client = createQueryClient();
 
-    render(
-      <QueryClientProvider client={client}>
-        <PinnedReposConsumer onState={s => states.push(s)} />
-      </QueryClientProvider>,
-    );
+    const result = await renderHookAndWait(() => usePinnedRepos(), client);
 
-    await waitFor(() =>
-      expect(
-        states.find(s => s.isSuccess && s.data?.repos.length === 2),
-      ).toBeTruthy(),
-    );
+    expect(result.isSuccess).toBe(true);
+    expect(result.data?.repos).toHaveLength(2);
   });
 
   test("surfaces GraphQL errors", async () => {
     const error = new Error("GraphQL error");
-    mockedGetGraphQL.mockRejectedValue(error);
-    const states: ReturnType<typeof usePinnedRepos>[] = [];
+    const mockGql = jest.fn().mockRejectedValue(error);
+    mockedGetGraphQL.mockResolvedValue(mockGql);
     const client = createQueryClient();
 
-    render(
-      <QueryClientProvider client={client}>
-        <PinnedReposConsumer onState={s => states.push(s)} />
-      </QueryClientProvider>,
-    );
+    const result = await renderHookAndWait(() => usePinnedRepos(), client);
 
-    await waitFor(() =>
-      expect(states.some(s => s.isError && s.error === error)).toBe(true),
-    );
+    expect(result.isError).toBe(true);
+    expect(result.error).toBe(error);
   });
 });
-
-function renderHookWithClient<T>(
-  hook: () => T,
-  client = createQueryClient(),
-): { result: { current: T } } {
-  const result: { current: T | undefined } = { current: undefined };
-  const Test = () => {
-    result.current = hook();
-    return null;
-  };
-  render(
-    <QueryClientProvider client={client}>
-      <Test />
-    </QueryClientProvider>,
-  );
-  return { result: { current: result.current! } };
-}

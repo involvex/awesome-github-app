@@ -1,56 +1,20 @@
-import { render, waitFor } from "@testing-library/react-native";
-import { QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
-
 import {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllRead,
 } from "../../src/lib/api/hooks/useNotifications";
+import {
+  createQueryClient,
+  renderHookAndWait,
+  renderHookForMutation,
+} from "../test-utils/render";
 import { notificationsFixture } from "../test-utils/fixtures";
-import { createQueryClient } from "../test-utils/render";
 
 const mockedGetOctokit = jest.fn();
 
 jest.mock("../../src/lib/api/github", () => ({
   getOctokit: () => mockedGetOctokit(),
 }));
-
-function NotificationsConsumer({
-  onState,
-}: {
-  onState: (state: ReturnType<typeof useNotifications>) => void;
-}) {
-  const state = useNotifications();
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
-
-function MarkReadConsumer({
-  onState,
-}: {
-  onState: (state: ReturnType<typeof useMarkNotificationRead>) => void;
-}) {
-  const state = useMarkNotificationRead();
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
-
-function MarkAllReadConsumer({
-  onState,
-}: {
-  onState: (state: ReturnType<typeof useMarkAllRead>) => void;
-}) {
-  const state = useMarkAllRead();
-  React.useEffect(() => {
-    onState(state);
-  }, [state, onState]);
-  return null;
-}
 
 describe("useNotifications hooks", () => {
   beforeEach(() => {
@@ -65,22 +29,12 @@ describe("useNotifications hooks", () => {
       mockedGetOctokit.mockResolvedValue({
         activity: { listNotificationsForAuthenticatedUser },
       });
-      const states: ReturnType<typeof useNotifications>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <NotificationsConsumer onState={s => states.push(s)} />
-        </QueryClientProvider>,
-      );
+      const result = await renderHookAndWait(() => useNotifications(), client);
 
-      await waitFor(() =>
-        expect(
-          states.find(
-            s => s.isSuccess && s.data?.length === notificationsFixture.length,
-          ),
-        ).toBeTruthy(),
-      );
+      expect(result.isSuccess).toBe(true);
+      expect(result.data).toHaveLength(notificationsFixture.length);
       expect(listNotificationsForAuthenticatedUser).toHaveBeenCalledWith({
         all: true,
         per_page: 50,
@@ -95,18 +49,12 @@ describe("useNotifications hooks", () => {
       mockedGetOctokit.mockResolvedValue({
         activity: { listNotificationsForAuthenticatedUser },
       });
-      const states: ReturnType<typeof useNotifications>[] = [];
       const client = createQueryClient();
 
-      render(
-        <QueryClientProvider client={client}>
-          <NotificationsConsumer onState={s => states.push(s)} />
-        </QueryClientProvider>,
-      );
+      const result = await renderHookAndWait(() => useNotifications(), client);
 
-      await waitFor(() =>
-        expect(states.some(s => s.isError && s.error === error)).toBe(true),
-      );
+      expect(result.isError).toBe(true);
+      expect(result.error).toBe(error);
     });
   });
 
@@ -119,7 +67,7 @@ describe("useNotifications hooks", () => {
       // Pre-populate cache
       client.setQueryData(["notifications"], notificationsFixture);
 
-      const { result } = renderHookWithClient(
+      const { result } = await renderHookForMutation(
         () => useMarkNotificationRead(),
         client,
       );
@@ -143,7 +91,7 @@ describe("useNotifications hooks", () => {
 
       client.setQueryData(["notifications"], notificationsFixture);
 
-      const { result } = renderHookWithClient(
+      const { result } = await renderHookForMutation(
         () => useMarkNotificationRead(),
         client,
       );
@@ -167,7 +115,10 @@ describe("useNotifications hooks", () => {
 
       client.setQueryData(["notifications"], notificationsFixture);
 
-      const { result } = renderHookWithClient(() => useMarkAllRead(), client);
+      const { result } = await renderHookForMutation(
+        () => useMarkAllRead(),
+        client,
+      );
 
       await result.current.mutateAsync();
 
@@ -186,7 +137,10 @@ describe("useNotifications hooks", () => {
 
       client.setQueryData(["notifications"], notificationsFixture);
 
-      const { result } = renderHookWithClient(() => useMarkAllRead(), client);
+      const { result } = await renderHookForMutation(
+        () => useMarkAllRead(),
+        client,
+      );
 
       await expect(result.current.mutateAsync()).rejects.toThrow(
         "network error",
@@ -197,20 +151,3 @@ describe("useNotifications hooks", () => {
     });
   });
 });
-
-function renderHookWithClient<T>(
-  hook: () => T,
-  client = createQueryClient(),
-): { result: { current: T } } {
-  const result: { current: T | undefined } = { current: undefined };
-  const Test = () => {
-    result.current = hook();
-    return null;
-  };
-  render(
-    <QueryClientProvider client={client}>
-      <Test />
-    </QueryClientProvider>,
-  );
-  return { result: { current: result.current! } };
-}

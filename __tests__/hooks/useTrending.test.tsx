@@ -7,8 +7,8 @@ import {
   type TrendingPeriod,
   type TrendingMode,
 } from "../../src/lib/api/hooks/useTrending";
+import { createQueryClient, renderHookAndWait } from "../test-utils/render";
 import { trendingRepoFixture } from "../test-utils/fixtures";
-import { createQueryClient } from "../test-utils/render";
 
 const mockedGetOctokit = jest.fn();
 
@@ -136,36 +136,19 @@ describe("useTrending hook", () => {
     mockedGetOctokit.mockResolvedValue({ search: { repos: search } });
     const client = createQueryClient();
 
-    const { result: result1 } = renderHookWithClient(
+    const result1 = await renderHookAndWait(
       () => useTrending("today", undefined, "hot"),
       client,
     );
-    const { result: result2 } = renderHookWithClient(
+    const result2 = await renderHookAndWait(
       () => useTrending("week", "TypeScript", "new"),
       client,
     );
 
-    await waitFor(() => expect(result1.current.isSuccess).toBe(true));
-    await waitFor(() => expect(result2.current.isSuccess).toBe(true));
+    expect(result1.isSuccess).toBe(true);
+    expect(result2.isSuccess).toBe(true);
 
-    expect(result1.current.data).toEqual(trendingRepoFixture);
-    expect(result2.current.data).toEqual(trendingRepoFixture);
+    expect(result1.data).toEqual(trendingRepoFixture);
+    expect(result2.data).toEqual(trendingRepoFixture);
   });
 });
-
-function renderHookWithClient<T>(
-  hook: () => T,
-  client = createQueryClient(),
-): { result: { current: T } } {
-  const result: { current: T | undefined } = { current: undefined };
-  const Test = () => {
-    result.current = hook();
-    return null;
-  };
-  render(
-    <QueryClientProvider client={client}>
-      <Test />
-    </QueryClientProvider>,
-  );
-  return { result: { current: result.current! } };
-}
