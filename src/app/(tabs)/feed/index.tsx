@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useActivity, useReleases } from "../../../lib/api/hooks";
+import { syncReleasesWidget } from "../../../lib/widgets/sync";
 import { Avatar, ReleaseCard } from "../../../components/ui";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useEffect, useMemo, useState } from "react";
@@ -474,6 +475,12 @@ export default function FeedScreen() {
     isRefetching: isReleasesRefetching,
     isLoading: isReleasesLoading,
   } = useReleases(user?.login ?? "");
+
+  useEffect(() => {
+    if (releasesData && releasesData.length > 0) {
+      void syncReleasesWidget(releasesData);
+    }
+  }, [releasesData]);
 
   const allEvents = activityData?.pages.flat() ?? [];
   const hasCustomFilter = activeFilters.length < ALL_FILTERS.length;

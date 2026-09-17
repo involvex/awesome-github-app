@@ -12,8 +12,9 @@ import {
   Text,
   View,
 } from "react-native";
+import { refreshPrInboxWidget } from "../../../lib/widgets/backgroundSync";
 import { Badge, SkeletonCard, EmptyState } from "../../../components/ui";
-import { setNotificationWidgetData } from "../../../lib/widgetData";
+import { syncNotificationsToWidget } from "../../../lib/widgetData";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "../../../contexts/ToastContext";
 import { useAppTheme } from "../../../lib/theme";
@@ -172,12 +173,13 @@ export default function NotificationsScreen() {
   useEffect(() => {
     if (prevUnreadCountRef.current !== unreadCount) {
       prevUnreadCountRef.current = unreadCount;
-      setNotificationWidgetData({
-        unreadCount,
-        lastUpdated: new Date().toISOString(),
-      });
+      void syncNotificationsToWidget(data ?? []);
     }
-  }, [unreadCount]);
+  }, [unreadCount, data]);
+
+  useEffect(() => {
+    void refreshPrInboxWidget();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

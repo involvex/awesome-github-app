@@ -1,3 +1,4 @@
+import { registerWidgetBackgroundSync } from "../lib/widgets/backgroundSync";
 import { useRateLimitWarning } from "../lib/hooks/useRateLimit";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +17,13 @@ function RootLayoutNav() {
   const theme = useAppTheme();
 
   useRateLimitWarning();
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    if (isAuthenticated) {
+      void registerWidgetBackgroundSync();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     async function requestPermissions() {
