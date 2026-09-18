@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://awesomegithubapp.example.com/widget-payload.schema.json",
+  "title": "Widget Payload Schema",
+  "description": "Shared schema for widget data snapshots written by the app and read by Android widget providers. Keep in sync with Kotlin data classes in widgets/*/WidgetProvider.kt.",
+  "type": "object",
+  "properties": {
+    "notification_widget_prefs": {
+      "type": "object",
+      "properties": {
+        "unread_count": { "type": "integer", "minimum": 0 },
+        "last_updated": { "type": "string", "format": "date-time" },
+        "last_updated_label": { "type": "string" },
+        "top_items_json": {
+          "type": "string",
+          "description": "JSON array of WidgetNotificationItem"
+        }
+      },
+      "required": [
+        "unread_count",
+        "last_updated",
+        "last_updated_label",
+        "top_items_json"
+      ],
+      "additionalProperties": false
+    },
+    "releases_widget_prefs": {
+      "type": "object",
+      "properties": {
+        "items_json": {
+          "type": "string",
+          "description": "JSON array of WidgetReleaseItem"
+        },
+        "last_updated": { "type": "string", "format": "date-time" },
+        "last_updated_label": { "type": "string" }
+      },
+      "required": ["items_json", "last_updated", "last_updated_label"],
+      "additionalProperties": false
+    },
+    "pr_inbox_widget_prefs": {
+      "type": "object",
+      "properties": {
+        "items_json": {
+          "type": "string",
+          "description": "JSON array of WidgetPrItem"
+        },
+        "last_updated": { "type": "string", "format": "date-time" },
+        "last_updated_label": { "type": "string" },
+        "filter": {
+          "type": "string",
+          "enum": ["all", "assigned", "review", "draft"]
+        }
+      },
+      "required": [
+        "items_json",
+        "last_updated",
+        "last_updated_label",
+        "filter"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "WidgetNotificationItem": {
+      "type": "object",
+      "properties": {
+        "repo_full_name": { "type": "string" },
+        "title": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PullRequest",
+            "Issue",
+            "Release",
+            "Discussion",
+            "Commit",
+            ""
+          ]
+        },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "required": ["repo_full_name", "title", "type", "url"],
+      "additionalProperties": false
+    },
+    "WidgetReleaseItem": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "repo_full_name": { "type": "string" },
+        "tag_name": { "type": "string" },
+        "name": { "type": ["string", "null"] },
+        "published_at": { "type": "string", "format": "date-time" },
+        "assets_count": { "type": "integer", "minimum": 0 },
+        "downloads": { "type": "integer", "minimum": 0 }
+      },
+      "required": [
+        "id",
+        "repo_full_name",
+        "tag_name",
+        "name",
+        "published_at",
+        "assets_count",
+        "downloads"
+      ],
+      "additionalProperties": false
+    },
+    "WidgetPrItem": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "repo_full_name": { "type": "string" },
+        "number": { "type": "integer" },
+        "title": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "draft": { "type": "boolean" },
+        "source": {
+          "type": "string",
+          "enum": ["assigned", "review", "unknown"]
+        }
+      },
+      "required": [
+        "id",
+        "repo_full_name",
+        "number",
+        "title",
+        "updated_at",
+        "draft",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

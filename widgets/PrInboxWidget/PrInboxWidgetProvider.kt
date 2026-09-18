@@ -39,10 +39,13 @@ class PrInboxWidgetProvider : AppWidgetProvider() {
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val lastUpdated = prefs.getString(KEY_LAST_UPDATED, "") ?: ""
-            views.setTextViewText(
-                R.id.updated,
-                if (lastUpdated.isBlank()) "Open app to refresh" else "Updated ${lastUpdated.take(10)}"
-            )
+            val lastUpdatedLabel = prefs.getString(KEY_LAST_UPDATED_LABEL, "") ?: ""
+            val updatedText = when {
+                lastUpdatedLabel.isNotBlank() -> lastUpdatedLabel
+                lastUpdated.isNotBlank() -> "Updated ${lastUpdated.take(10)}"
+                else -> "Open app to refresh"
+            }
+            views.setTextViewText(R.id.updated, updatedText)
 
             // Collection adapter — unique URI per widget id so instances don't share cursors.
             val serviceIntent = Intent(context, PrInboxWidgetService::class.java).apply {
@@ -90,6 +93,8 @@ class PrInboxWidgetProvider : AppWidgetProvider() {
         const val PREFS_NAME = "pr_inbox_widget_prefs"
         const val KEY_ITEMS = "items_json"
         const val KEY_LAST_UPDATED = "last_updated"
+        const val KEY_LAST_UPDATED_LABEL = "last_updated_label"
+        const val KEY_FILTER = "filter"
         private const val APP_DEEP_LINK = "awesomegithubapp://"
     }
 }

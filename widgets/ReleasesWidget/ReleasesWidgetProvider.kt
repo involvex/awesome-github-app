@@ -38,10 +38,13 @@ class ReleasesWidgetProvider : AppWidgetProvider() {
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val lastUpdated = prefs.getString(KEY_LAST_UPDATED, "") ?: ""
-            views.setTextViewText(
-                R.id.updated,
-                if (lastUpdated.isBlank()) "Open app to refresh" else "Updated ${lastUpdated.take(10)}"
-            )
+            val lastUpdatedLabel = prefs.getString(KEY_LAST_UPDATED_LABEL, "") ?: ""
+            val updatedText = when {
+                lastUpdatedLabel.isNotBlank() -> lastUpdatedLabel
+                lastUpdated.isNotBlank() -> "Updated ${lastUpdated.take(10)}"
+                else -> "Open app to refresh"
+            }
+            views.setTextViewText(R.id.updated, updatedText)
 
             // Collection adapter — unique URI per widget id so instances don't share cursors.
             val serviceIntent = Intent(context, ReleasesWidgetService::class.java).apply {
@@ -89,6 +92,7 @@ class ReleasesWidgetProvider : AppWidgetProvider() {
         const val PREFS_NAME = "releases_widget_prefs"
         const val KEY_ITEMS = "items_json"
         const val KEY_LAST_UPDATED = "last_updated"
+        const val KEY_LAST_UPDATED_LABEL = "last_updated_label"
         private const val FEED_DEEP_LINK = "awesomegithubapp://(tabs)/feed"
     }
 }

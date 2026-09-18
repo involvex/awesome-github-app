@@ -46,6 +46,7 @@ class NotificationWidgetProvider : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val unreadCount = prefs.getInt(KEY_UNREAD_COUNT, 0)
             val lastUpdated = prefs.getString(KEY_LAST_UPDATED, "") ?: ""
+            val lastUpdatedLabel = prefs.getString(KEY_LAST_UPDATED_LABEL, "") ?: ""
             val topItems = parseTitles(prefs.getString(KEY_TOP_ITEMS, "[]") ?: "[]")
 
             if (unreadCount > 0) {
@@ -59,10 +60,13 @@ class NotificationWidgetProvider : AppWidgetProvider() {
             }
 
             bindTopItems(views, topItems, unreadCount)
-            views.setTextViewText(R.id.updated, formatUpdated(lastUpdated))
+            views.setTextViewText(R.id.updated, formatUpdated(lastUpdatedLabel, lastUpdated))
 
             // Tapping the widget opens the notifications tab. Requires login;
             // logged-out users land on the login screen via the root gate.
+            // Note: static TextViews can't carry per-row intents (no collection
+            // adapter here) — rows are informational; tap opens the list where
+            // each notification deep-links to its repo.
             val openIntent = Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK)).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -78,7 +82,7 @@ class NotificationWidgetProvider : AppWidgetProvider() {
         }
 
         private fun bindTopItems(views: RemoteViews, items: List<String>, unreadCount: Int) {
-            val slots = intArrayOf(R.id.item_1, R.id.item_2, R.id.item_3)
+            val slots = intArrayOf(R.id.item_1, R.id.item_2, R.id.item_3, R.id.item_4, R.id.item_5)
             if (unreadCount <= 0 || items.isEmpty()) {
                 views.setViewVisibility(R.id.items, View.GONE)
                 return
@@ -97,16 +101,33 @@ class NotificationWidgetProvider : AppWidgetProvider() {
         private fun parseTitles(raw: String): List<String> {
             return try {
                 val arr = JSONArray(raw)
-                List(arr.length()) { i -> arr.optString(i) }.filter { it.isNotBlank() }.take(3)
+                List(arr.length()) { i ->
+                    val el = arr.opt(i)
+                    if (el is org.json.JSONObject) {
+                        val repo = el.optString("repo_full_name", "Unknown")
+                        val title = el.optString("title", "New activity")
+                        val type = el.optString("type", "")
+                        val prefix = when (type) {
+                            "PullRequest" -> "PR"
+                            "Issue" -> "Issue"
+                            "" -> null
+                            else -> type
+                        }
+                        val combined = if (prefix != null) "$prefix · $repo: $title" else "$repo: $title"
+                        if (combined.length > 80) combined.take(77) + "..." else combined
+                    } else {
+                        arr.optString(i)
+                    }
+                }.filter { it.isNotBlank() }.take(5)
             } catch (_: Exception) {
                 emptyList()
             }
         }
 
-        private fun formatUpdated(iso: String): String {
+        private fun formatUpdated(label: String, iso: String): String {
+            if (label.isNotBlank()) return label
             if (iso.isBlank()) return "Open app to refresh"
-            // Keep it short for the widget: show date portion only, full
-            // relative time is rendered in-app.
+            // Fallback for snapshots written before last_updated_label existed.
             return "Updated ${iso.take(10)}"
         }
 
@@ -120,6 +141,7 @@ class NotificationWidgetProvider : AppWidgetProvider() {
         const val PREFS_NAME = "notification_widget_prefs"
         const val KEY_UNREAD_COUNT = "unread_count"
         const val KEY_LAST_UPDATED = "last_updated"
+        const val KEY_LAST_UPDATED_LABEL = "last_updated_label"
         const val KEY_TOP_ITEMS = "top_items_json"
         private const val DEEP_LINK = "awesomegithubapp://(tabs)/notifications"
     }

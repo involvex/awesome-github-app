@@ -8,6 +8,7 @@ import {
   useRepoReleases,
   useIssues,
   usePullRequests,
+  isViewableTextFile,
   type IssueState,
   type PRState,
 } from "../../../../lib/api/hooks";
@@ -22,11 +23,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { FileViewer } from "../../../../components/repo/FileViewer";
 import { LanguageDot } from "../../../../components/ui/LanguageDot";
 import { Markdown } from "../../../../components/ui/Markdown";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useAuth } from "../../../../contexts/AuthContext";
+import { toSafeGitHubUrl } from "../../../../lib/security";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { useAppTheme } from "../../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -313,6 +316,10 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
 function CodeTab({ owner, repo }: { owner: string; repo: string }) {
   const theme = useAppTheme();
   const [currentPath, setCurrentPath] = useState("");
+  const [selectedFile, setSelectedFile] = useState<{
+    path: string;
+    html_url: string | null;
+  } | null>(null);
   const { data, isLoading } = useRepoContents(owner, repo, currentPath);
 
   const pathParts = currentPath ? currentPath.split("/") : [];
@@ -400,8 +407,16 @@ function CodeTab({ owner, repo }: { owner: string; repo: string }) {
                 onPress={() => {
                   if (item.type === "dir") {
                     setCurrentPath(item.path);
+                  } else if (isViewableTextFile(item.name, item.size)) {
+                    setSelectedFile({
+                      path: item.path,
+                      html_url: item.html_url,
+                    });
                   } else if (item.html_url) {
-                    Linking.openURL(item.html_url);
+                    const safeUrl = toSafeGitHubUrl(item.html_url);
+                    if (safeUrl) {
+                      Linking.openURL(safeUrl);
+                    }
                   }
                 }}
               >
@@ -434,6 +449,14 @@ function CodeTab({ owner, repo }: { owner: string; repo: string }) {
           </>
         )}
       </View>
+      <FileViewer
+        owner={owner}
+        repo={repo}
+        path={selectedFile?.path ?? null}
+        htmlUrl={selectedFile?.html_url ?? null}
+        visible={selectedFile !== null}
+        onClose={() => setSelectedFile(null)}
+      />
     </View>
   );
 }

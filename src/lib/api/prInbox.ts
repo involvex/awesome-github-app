@@ -1,5 +1,7 @@
 import { getOctokit } from "./github";
 
+export type PrSource = "assigned" | "review";
+
 export interface AssignedPr {
   id: number;
   number: number;
@@ -7,11 +9,13 @@ export interface AssignedPr {
   updated_at: string;
   html_url: string;
   repo_full_name: string;
+  draft: boolean;
+  source: PrSource;
 }
 
-const QUERIES = [
-  "is:open is:pr assignee:@me",
-  "is:open is:pr review-requested:@me",
+const QUERIES: { q: string; source: PrSource }[] = [
+  { q: "is:open is:pr assignee:@me", source: "assigned" },
+  { q: "is:open is:pr review-requested:@me", source: "review" },
 ];
 
 const MAX_PRS = 10;
@@ -29,7 +33,7 @@ export function repoFullNameFromUrl(url: string | undefined): string {
 export async function fetchAssignedPrs(): Promise<AssignedPr[]> {
   const octokit = await getOctokit();
   const seen = new Map<number, AssignedPr>();
-  for (const q of QUERIES) {
+  for (const { q, source } of QUERIES) {
     try {
       const { data } = await octokit.search.issuesAndPullRequests({
         q,
@@ -46,6 +50,8 @@ export async function fetchAssignedPrs(): Promise<AssignedPr[]> {
           updated_at: item.updated_at,
           html_url: item.html_url,
           repo_full_name: repoFullNameFromUrl(item.repository_url),
+          draft: (item as unknown as { draft?: boolean }).draft ?? false,
+          source,
         });
       }
     } catch {
@@ -58,4 +64,31 @@ export async function fetchAssignedPrs(): Promise<AssignedPr[]> {
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     )
     .slice(0, MAX_PRS);
+}
+
+/**
+ * Discriminated union for PR filter logic.
+ * Ensures exhaustive matching in switch statements.
+ */
+export type PrInboxFilter =
+  | { kind: "all" }
+  | { kind: "assigned" }
+  | { kind: "review" }
+  | { kind: "draft" };
+
+export function filterPrInboxItems(
+  prs: AssignedPr[],
+  filter: PrInboxFilter,
+): AssignedPr[] {
+  switch (filter.kind) {
+    case "assigned":
+      return prs.filter(p => p.source === "assigned");
+    case "review":
+      return prs.filter(p => p.source === "review");
+    case "draft":
+      return prs.filter(p => p.draft);
+    case "all":
+    default:
+      return prs;
+  }
 }

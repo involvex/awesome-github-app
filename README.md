@@ -234,7 +234,16 @@ See [`suggestions.md`](./suggestions.md) for the full feature backlog. Current p
 - Unit tests for API hooks
 - Skeleton loaders across all list screens
 - Optimistic updates + haptic feedback
-- Notification, feed, and trending home screen widgets (Android)
+- Notification, PR inbox, and releases home screen widgets (Android)
+
+### Home screen widgets (Android)
+
+Three resizable widgets (Notifications, Pull requests, Recent releases).
+They refresh about every 30 minutes via background fetch and on every app
+open; the PR widget filter (All / Assigned / Review requested / Drafts) lives
+in Profile → Settings → Home widgets. Widgets never hold your GitHub token —
+the app snapshots token-free JSON to SharedPreferences, and sign-out clears
+it. After changing `widgets/` or `plugins/`, run `bun run native:sync`.
 
 ---
 

@@ -1,4 +1,10 @@
 import {
+  PR_INBOX_FILTERS,
+  getPrInboxFilter,
+  setPrInboxFilter,
+  syncPrInboxWidget,
+} from "../../../lib/widgets/sync";
+import {
   Alert,
   ScrollView,
   StyleSheet,
@@ -9,16 +15,21 @@ import {
 } from "react-native";
 import { SegmentedControl } from "../../../components/ui/SegmentedControl";
 import { SettingsRow } from "../../../components/ui/SettingsRow";
+import type { PrInboxFilter } from "../../../lib/api/prInbox";
+import { fetchAssignedPrs } from "../../../lib/api/prInbox";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { Section } from "../../../components/ui/Section";
 import { useAuth } from "../../../contexts/AuthContext";
 import { usePreferences } from "../../../lib/hooks";
 import { useAppTheme } from "../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 
 type ThemeMode = "light" | "dark" | "system";
+
+type PrFilterKind = PrInboxFilter["kind"];
 
 export default function SettingsScreen() {
   const theme = useAppTheme();
@@ -26,6 +37,26 @@ export default function SettingsScreen() {
   const { signOut, user } = useAuth();
   const { themeMode, setThemeMode } = useTheme();
   const { preferences, updatePreference } = usePreferences();
+  const [prFilterKind, setPrFilterKind] = useState<PrFilterKind>("all");
+
+  useEffect(() => {
+    void getPrInboxFilter()
+      .then(f => setPrFilterKind(f.kind))
+      .catch(() => {});
+  }, []);
+
+  const handlePrFilterChange = (filterKind: PrFilterKind) => {
+    setPrFilterKind(filterKind);
+    const filter: PrInboxFilter = { kind: filterKind };
+    void (async () => {
+      try {
+        await setPrInboxFilter(filter);
+        await syncPrInboxWidget(await fetchAssignedPrs(), filter);
+      } catch {
+        // Offline — filter is persisted and applies on next sync.
+      }
+    })();
+  };
 
   const handleThemeChange = (mode: ThemeMode) => {
     setThemeMode(mode);
@@ -154,6 +185,32 @@ export default function SettingsScreen() {
             Linking.openURL("https://github.com/settings/notifications")
           }
         />
+      </Section>
+
+      <Section
+        title="Home widgets"
+        style={styles.section}
+      >
+        <View style={styles.segmentedControlWrapper}>
+          <Text style={[styles.label, { color: theme.subtle }]}>
+            PR widget filter
+          </Text>
+          <SegmentedControl
+            options={PR_INBOX_FILTERS.map(f => ({
+              label: f.label,
+              value: f.value,
+              icon: "git-pull-request-outline" as const,
+            }))}
+            value={prFilterKind}
+            onChange={handlePrFilterChange}
+            size="md"
+            fullWidth
+          />
+          <Text style={[styles.hint, { color: theme.muted }]}>
+            Widgets refresh about every 30 minutes and when you open the app.
+            Sign out clears widget data.
+          </Text>
+        </View>
       </Section>
 
       <Section
@@ -321,5 +378,9 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 17,
   },
 });

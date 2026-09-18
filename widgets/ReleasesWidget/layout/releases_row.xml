@@ -42,4 +42,13 @@
 
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#8b949e"
+        android:textSize="10sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
 </LinearLayout>

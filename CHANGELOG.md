@@ -1,22 +1,33 @@
-## [Unreleased]
+## [0.0.19](https://github.com/involvex/awesome-github-app/compare/v0.0.18...v0.0.19) (2026-09-18)
+
+### Bug Fixes
+
+- **android-ci:** add NDK 27 setup ([b97e6a9](https://github.com/involvex/awesome-github-app/commit/b97e6a9002083a64894002df334c91edabe80538))
+- **android-ci:** use full sdkmanager path ([ad3fcf6](https://github.com/involvex/awesome-github-app/commit/ad3fcf6e68c50fc06a857c8506705876024f7d5b))
 
 ### Features
 
-- Add Android home screen widgets for notifications, feed, and trending repos
-- Add haptic feedback helper and apply to interactive elements
-- Replace spinners with skeleton loaders across list screens
-- Add branded empty states to repos, notifications, and profile screens
-- Add share and copy-link actions to profiles and repo detail
-- Add search history with persisted recent searches
-- Add pull-to-refresh on profile, starred repos, and trending screens
-- Add rate-limit awareness with toast warnings
-- Add expo-image cache policies for avatars and repo images
+- implement Issues/PR tabs, optimistic updates, virtualized lists, rate limit warnings, and test infrastructure ([5b72f82](https://github.com/involvex/awesome-github-app/commit/5b72f8278e2de028d65fd03465a8957e6cb20712))
+- **widgets:** add Android home-screen widgets with background sync ([a486aef](https://github.com/involvex/awesome-github-app/commit/a486aefa2a992cf0f8f3105ce0b0938ac733b676))
+- **widgets:** overhaul Android home screen widgets and add file viewer ([49833b8](https://github.com/involvex/awesome-github-app/commit/49833b8550cbe633cdd4025b8b7d4d1e16cf4b2c))
+
+## [0.0.18](https://github.com/involvex/awesome-github-app/compare/0.0.17...v0.0.18) (2026-09-08)
+
+### Bug Fixes
+
+- mock expo-image in jest to prevent native module error ([523137c](https://github.com/involvex/awesome-github-app/commit/523137ce13501e77cb58758e6173b66f2fa13806))
+
+### Features
+
+- multi-type search suggestions, skeleton loaders, persistent starred state ([ed21d83](https://github.com/involvex/awesome-github-app/commit/ed21d83793820f03679767f8aa6151aeac7ee031))
+- quick wins, widgets foundation, and docs updates ([4d8d5ac](https://github.com/involvex/awesome-github-app/commit/4d8d5acd9fa400be155d122eb0a887bde11909ba))
+- star/unstar actions, releases tab, search suggestions ([a3ee548](https://github.com/involvex/awesome-github-app/commit/a3ee54854a24ea808ce37bdef3432ab306d05154))
 
 ## [0.0.17](https://github.com/involvex/awesome-github-app/compare/0.0.16...0.0.17) (2026-07-27)
 
 ### Features
 
-- upgrade to Expo 57 and improve feed, explore, and fork UX ([7fbf7c5](https://github.com/involvex/awesome-github-app/commit/7fbf7c5f91de05e9b19e7cadacf24ee53257ea33))
+- upgrade to Expo 57 and improve feed, explore, and fork UX ([cba8156](https://github.com/involvex/awesome-github-app/commit/cba81567d28c53507b6d497193f427239132935a))
 
 ## [0.0.16](https://github.com/involvex/awesome-github-app/compare/0.0.15...0.0.16) (2026-06-27)
 

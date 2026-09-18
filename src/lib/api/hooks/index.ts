@@ -28,6 +28,12 @@ export {
 } from "./useRepo";
 export { useRepoReleases, type RepoRelease } from "./useRepoReleases";
 export {
+  useFileContent,
+  isViewableTextFile,
+  languageFromFileName,
+  type FileContent,
+} from "./useFileContent";
+export {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllRead,

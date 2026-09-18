@@ -11,6 +11,7 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    plugins: [...(config.plugins ?? []), "expo-background-task"],
     name: isDebug ? "Awesome GH (Debug)" : config.name,
     android: {
       ...config.android,

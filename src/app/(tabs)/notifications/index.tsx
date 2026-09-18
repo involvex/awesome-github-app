@@ -6,6 +6,7 @@ import {
 } from "../../../lib/api/hooks";
 import {
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -15,12 +16,15 @@ import {
 import { refreshPrInboxWidget } from "../../../lib/widgets/backgroundSync";
 import { Badge, SkeletonCard, EmptyState } from "../../../components/ui";
 import { syncNotificationsToWidget } from "../../../lib/widgetData";
+import { parseNotificationTarget } from "../../../lib/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "../../../contexts/ToastContext";
+import { toSafeGitHubUrl } from "../../../lib/security";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
 import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 type Segment = "all" | "participating" | "assigned" | "mentioned";
 
@@ -42,10 +46,12 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 function NotifRow({
   item,
   onMarkRead,
+  onOpen,
   isMarking,
 }: {
   item: NotificationThread;
   onMarkRead: (id: string) => void;
+  onOpen: (item: NotificationThread) => void;
   isMarking: boolean;
 }) {
   const theme = useAppTheme();
@@ -61,10 +67,11 @@ function NotifRow({
           backgroundColor: isUnread ? theme.surface : theme.background,
         },
       ]}
-      disabled={isMarking || !isUnread}
+      disabled={isMarking}
       onPress={() => {
         haptic("light");
         if (isUnread) onMarkRead(item.id);
+        onOpen(item);
       }}
     >
       <View style={styles.rowLeft}>
@@ -116,6 +123,7 @@ function NotifRow({
 
 export default function NotificationsScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
   const { showToast } = useToast();
   const [segment, setSegment] = useState<Segment>("all");
   const [pullRefreshing, setPullRefreshing] = useState(false);
@@ -156,6 +164,28 @@ export default function NotificationsScreen() {
       setPullRefreshing(false);
     }
   };
+
+  const handleOpen = useCallback(
+    (item: NotificationThread) => {
+      const target = parseNotificationTarget(item);
+      if (target) {
+        router.push(target.route as never);
+        return;
+      }
+      const fallback = item.subject?.url;
+      if (fallback) {
+        const safeUrl = toSafeGitHubUrl(fallback);
+        if (safeUrl) {
+          void Linking.openURL(safeUrl).catch(() => {
+            showToast("Could not open notification", "error");
+          });
+        } else {
+          showToast("Unsafe link blocked", "error");
+        }
+      }
+    },
+    [router, showToast],
+  );
 
   const filtered = (data ?? []).filter((n: NotificationThread) => {
     if (segment === "all") return true;
@@ -253,6 +283,7 @@ export default function NotificationsScreen() {
             <NotifRow
               item={item}
               onMarkRead={handleMarkRead}
+              onOpen={handleOpen}
               isMarking={isMarkingOne || isMarkingAll}
             />
           )}

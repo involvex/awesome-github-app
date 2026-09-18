@@ -49,7 +49,8 @@ private class PrInboxFactory(
         val item = items[position]
         return RemoteViews(context.packageName, R.layout.pr_inbox_row).apply {
             setTextViewText(R.id.repo, item.repoFullName)
-            setTextViewText(R.id.title, "#${item.number} ${item.title}")
+            val prefix = if (item.draft) "Draft · " else ""
+            setTextViewText(R.id.title, "$prefix#${item.number} ${item.title}")
             setTextViewText(R.id.date, item.updatedAt.take(10))
             // Per-row deep link into the repo page (login-gated in-app).
             val fillIn = Intent().apply {
@@ -90,7 +91,9 @@ private class PrInboxFactory(
                     repoFullName = o.optString("repo_full_name", "unknown"),
                     number = o.optInt("number", 0),
                     title = o.optString("title", ""),
-                    updatedAt = o.optString("updated_at", "")
+                    updatedAt = o.optString("updated_at", ""),
+                    draft = o.optBoolean("draft", false),
+                    source = o.optString("source", "unknown")
                 )
             }.take(10)
         } catch (_: Exception) {
@@ -103,6 +106,8 @@ private class PrInboxFactory(
         val repoFullName: String,
         val number: Int,
         val title: String,
-        val updatedAt: String
+        val updatedAt: String,
+        val draft: Boolean,
+        val source: String
     )
 }

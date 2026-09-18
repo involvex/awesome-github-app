@@ -1,11 +1,14 @@
 import {
+  buildNotificationItems,
   buildNotificationTitles,
   buildPrInboxPayload,
   buildReleasesPayload,
+  formatWidgetTimestamp,
 } from "../../src/lib/widgets/sync";
 import type { NotificationThread } from "../../src/lib/api/hooks/useNotifications";
 import type { Release } from "../../src/lib/api/hooks/useReleases";
 import { repoFullNameFromUrl } from "../../src/lib/api/prInbox";
+import { filterPrInboxItems } from "../../src/lib/api/prInbox";
 import type { AssignedPr } from "../../src/lib/api/prInbox";
 
 function makeRelease(id: number, fullName: string): Release {
@@ -49,7 +52,10 @@ describe("buildReleasesPayload", () => {
         id: 1,
         repo_full_name: "owner/repo",
         tag_name: "v1.0.0",
+        name: "Release 1",
         published_at: "2026-09-02T00:00:00Z",
+        assets_count: 0,
+        downloads: 0,
       },
     ]);
   });
@@ -63,18 +69,25 @@ describe("buildReleasesPayload", () => {
 });
 
 describe("buildNotificationTitles", () => {
-  test("returns unread titles only, capped at 3", () => {
+  test("returns unread titles only, capped at 5", () => {
     const threads = [
       makeThread("1", true, "a/b", "One"),
       makeThread("2", false, "a/b", "Read already"),
       makeThread("3", true, "c/d", "Three"),
       makeThread("4", true, "e/f", "Four"),
       makeThread("5", true, "g/h", "Five"),
+      makeThread("6", true, "i/j", "Six"),
+      makeThread("7", true, "k/l", "Seven"),
     ];
     const titles = buildNotificationTitles(threads);
-    expect(titles).toHaveLength(3);
-    expect(titles[0]).toBe("a/b: One");
+    expect(titles).toHaveLength(5);
     expect(titles.join(" ")).not.toContain("Read already");
+  });
+
+  test("prefixes titles with notification type", () => {
+    const threads = [makeThread("1", true, "a/b", "One")];
+    threads[0].subject = { title: "One", type: "PullRequest" } as never;
+    expect(buildNotificationTitles(threads)[0]).toMatch(/^PR · /);
   });
 
   test("truncates long titles", () => {
@@ -83,7 +96,11 @@ describe("buildNotificationTitles", () => {
   });
 });
 
-function makePr(id: number, title = "Add feature"): AssignedPr {
+function makePr(
+  id: number,
+  title = "Add feature",
+  extra: Partial<AssignedPr> = {},
+): AssignedPr {
   return {
     id,
     number: id,
@@ -91,6 +108,9 @@ function makePr(id: number, title = "Add feature"): AssignedPr {
     updated_at: "2026-09-03T00:00:00Z",
     html_url: `https://github.com/owner/repo/pull/${id}`,
     repo_full_name: "owner/repo",
+    draft: false,
+    source: "assigned",
+    ...extra,
   };
 }
 
@@ -104,6 +124,8 @@ describe("buildPrInboxPayload", () => {
         number: 7,
         title: "Add feature",
         updated_at: "2026-09-03T00:00:00Z",
+        draft: false,
+        source: "assigned",
       },
     ]);
   });
@@ -127,5 +149,67 @@ describe("repoFullNameFromUrl", () => {
 
   test("falls back to unknown", () => {
     expect(repoFullNameFromUrl(undefined)).toBe("unknown");
+  });
+});
+
+describe("buildNotificationItems", () => {
+  test("returns structured unread items capped at 5", () => {
+    const threads = [
+      makeThread("1", true),
+      makeThread("2", false),
+      makeThread("3", true),
+      makeThread("4", true),
+      makeThread("5", true),
+      makeThread("6", true),
+      makeThread("7", true),
+    ];
+    const items = buildNotificationItems(threads);
+    expect(items).toHaveLength(5);
+    expect(items[0]).toMatchObject({
+      repo_full_name: "owner/repo",
+      title: "Fix bug",
+    });
+  });
+});
+
+describe("filterPrInboxItems", () => {
+  const prs = [
+    makePr(1, "A", { source: "assigned", draft: false }),
+    makePr(2, "B", { source: "review", draft: false }),
+    makePr(3, "C", { source: "assigned", draft: true }),
+  ];
+
+  test("all returns everything", () => {
+    expect(filterPrInboxItems(prs, { kind: "all" })).toHaveLength(3);
+  });
+
+  test("assigned excludes review-requested", () => {
+    expect(
+      filterPrInboxItems(prs, { kind: "assigned" }).map(p => p.id),
+    ).toEqual([1, 3]);
+  });
+
+  test("review excludes assigned", () => {
+    expect(filterPrInboxItems(prs, { kind: "review" }).map(p => p.id)).toEqual([
+      2,
+    ]);
+  });
+
+  test("draft returns only drafts", () => {
+    expect(filterPrInboxItems(prs, { kind: "draft" }).map(p => p.id)).toEqual([
+      3,
+    ]);
+  });
+});
+
+describe("formatWidgetTimestamp", () => {
+  test("labels recent syncs relatively", () => {
+    expect(formatWidgetTimestamp(new Date())).toBe("Updated just now");
+    expect(formatWidgetTimestamp(new Date(Date.now() - 5 * 60000))).toBe(
+      "Updated 5m ago",
+    );
+    expect(formatWidgetTimestamp(new Date(Date.now() - 3 * 3600000))).toBe(
+      "Updated 3h ago",
+    );
   });
 });
