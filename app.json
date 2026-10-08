@@ -20,6 +20,7 @@
       "./plugins/withAndroidNotificationWidget"
     ],
     "android": {
+      "namespace": "com.involvex.awesomegithubapp",
       "package": "com.involvex.awesomegithubapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",

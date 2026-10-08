@@ -1,6 +1,7 @@
 const {
   AndroidConfig,
   withAndroidManifest,
+  withAppBuildGradle,
   withDangerousMod,
 } = require("@expo/config-plugins");
 const path = require("path");
@@ -8,6 +9,7 @@ const fs = require("fs");
 
 const WIDGET_PACKAGE = "com.involvex.awesomegithubapp.widget";
 const WIDGET_ACTION = "android.appwidget.action.APPWIDGET_UPDATE";
+const FIXED_NAMESPACE = "com.involvex.awesomegithubapp";
 
 const RECEIVERS = [
   {
@@ -102,9 +104,11 @@ function copyDirRecursive(src, dest, widgetPrefix) {
  *   -> android/app/src/main/res/{layout,xml,drawable,values}
  * Also registers WidgetDataPackage in MainApplication.kt.
  */
-function syncWidgetsIntoProject(projectRoot, platformRoot) {
+function syncWidgetsIntoProject(projectRoot, platformRoot, packageName) {
   const widgetsRoot = path.join(projectRoot, "widgets");
   const resRoot = path.join(platformRoot, "app/src/main/res");
+  // Widget Kotlin sources always go under the fixed namespace directory,
+  // not the per-variant package directory.
   const javaRoot = path.join(
     platformRoot,
     "app/src/main/java/com/involvex/awesomegithubapp/widget",
@@ -136,9 +140,14 @@ function syncWidgetsIntoProject(projectRoot, platformRoot) {
     }
   }
 
+  // Find MainApplication.kt at the correct package path (per-variant).
+  // When APP_VARIANT=debug, android.package becomes com.involvex.awesomegithubapp.debug
+  // and the file is at .../com/involvex/awesomegithubapp/debug/MainApplication.kt.
   const mainApp = path.join(
     platformRoot,
-    "app/src/main/java/com/involvex/awesomegithubapp/MainApplication.kt",
+    "app/src/main/java",
+    ...(packageName ?? FIXED_NAMESPACE).split("."),
+    "MainApplication.kt",
   );
   if (fs.existsSync(mainApp)) {
     let content = fs.readFileSync(mainApp, "utf8");
@@ -156,6 +165,33 @@ function syncWidgetsIntoProject(projectRoot, platformRoot) {
   }
 }
 
+/**
+ * Fixes the namespace in build.gradle.
+ *
+ * Expo's withPackageGradle (setPackageInBuildGradle) replaces BOTH
+ * `namespace` and `applicationId` with config.android.package. For the
+ * debug variant, package becomes com.involvex.awesomegithubapp.debug,
+ * which puts the R class in com.involvex.awesomegithubapp.debug.R.
+ * The widget Kotlin files hardcode `import com.involvex.awesomegithubapp.R`,
+ * so the namespace must stay fixed at com.involvex.awesomegithubapp
+ * regardless of variant.
+ *
+ * This mod uses withAppBuildGradle (same mod phase as setPackageInBuildGradle)
+ * but runs AFTER it because it's a plugin mod, while setPackageInBuildGradle
+ * is a base mod.
+ */
+function withFixedNamespace(config) {
+  return withAppBuildGradle(config, config => {
+    if (config.modResults.language === "groovy") {
+      config.modResults.contents = config.modResults.contents.replace(
+        /namespace\s+'[^']+'/,
+        `namespace '${FIXED_NAMESPACE}'`,
+      );
+    }
+    return config;
+  });
+}
+
 module.exports = function withAndroidWidgets(config) {
   config = withAndroidManifest(config, config => {
     for (const r of RECEIVERS) ensureReceiver(config.modResults, r);
@@ -163,12 +199,17 @@ module.exports = function withAndroidWidgets(config) {
     return config;
   });
 
+  // Apply the namespace fix using withAppBuildGradle so it runs AFTER
+  // setPackageInBuildGradle (which is a base mod that runs first).
+  config = withFixedNamespace(config);
+
   return withDangerousMod(config, [
     "android",
     async config => {
       syncWidgetsIntoProject(
         config.modRequest.projectRoot,
         config.modRequest.platformProjectRoot,
+        config.android?.package ?? FIXED_NAMESPACE,
       );
       return config;
     },
