@@ -163,6 +163,59 @@ function syncWidgetsIntoProject(projectRoot, platformRoot, packageName) {
       fs.writeFileSync(mainApp, content);
     }
   }
+
+  // Patch Expo-generated sources for the split namespace/package layout.
+  // With a fixed namespace (com.involvex.awesomegithubapp) and a per-variant
+  // package (com.involvex.awesomegithubapp.debug), the generated R and
+  // BuildConfig live in the namespace package while MainActivity and
+  // MainApplication live in the variant package — so they need explicit
+  // imports. Without these, CI fails with "Unresolved reference 'R'" and
+  // "Unresolved reference 'BuildConfig'".
+  patchGeneratedSources(platformRoot, packageName ?? FIXED_NAMESPACE);
+}
+
+/**
+ * Inserts a missing `import <fqcn>` after the last existing import line.
+ * Idempotent — no-op when the import is already present.
+ */
+function ensureImport(content, fqcn) {
+  if (content.includes(`import ${fqcn}`)) return content;
+  const importLine = `import ${fqcn}`;
+  const lines = content.split("\n");
+  let lastImportIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^import\s+\S+/.test(lines[i].trim())) lastImportIdx = i;
+  }
+  if (lastImportIdx === -1) return content;
+  lines.splice(lastImportIdx + 1, 0, importLine);
+  return lines.join("\n");
+}
+
+function patchGeneratedSources(platformRoot, packageName) {
+  // Only needed when the variant package differs from the fixed namespace.
+  if (packageName === FIXED_NAMESPACE) return;
+  const javaDir = path.join(
+    platformRoot,
+    "app/src/main/java",
+    ...packageName.split("."),
+  );
+  const patches = [
+    {
+      file: path.join(javaDir, "MainActivity.kt"),
+      imports: [`${FIXED_NAMESPACE}.R`, `${FIXED_NAMESPACE}.BuildConfig`],
+    },
+    {
+      file: path.join(javaDir, "MainApplication.kt"),
+      imports: [`${FIXED_NAMESPACE}.BuildConfig`],
+    },
+  ];
+  for (const { file, imports } of patches) {
+    if (!fs.existsSync(file)) continue;
+    let content = fs.readFileSync(file, "utf8");
+    const before = content;
+    for (const fqcn of imports) content = ensureImport(content, fqcn);
+    if (content !== before) fs.writeFileSync(file, content);
+  }
 }
 
 /**

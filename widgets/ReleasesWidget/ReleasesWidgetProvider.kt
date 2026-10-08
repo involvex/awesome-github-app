@@ -8,7 +8,10 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
 
-import com.involvex.awesomegithubapp.MainActivity
+// NOTE: Do NOT import MainActivity directly — in the debug variant it lives
+// in com.involvex.awesomegithubapp.debug (per-variant package), while in
+// release it lives in com.involvex.awesomegithubapp. The row template below
+// resolves it at runtime via setClassName so both variants compile.
 import com.involvex.awesomegithubapp.R
 
 /**
@@ -71,8 +74,10 @@ class ReleasesWidgetProvider : AppWidgetProvider() {
             // Row taps are filled in by the factory with per-release repo links.
             // Must be explicit: Android 14+ rejects MUTABLE PendingIntents
             // with implicit intents. The factory merges the deep-link URI in.
-            val rowTemplate = Intent(context, MainActivity::class.java).apply {
-                action = Intent.ACTION_VIEW
+            // Resolved via setClassName (not a MainActivity import) so this
+            // compiles in both base and .debug applicationId variants.
+            val rowTemplate = Intent(Intent.ACTION_VIEW).apply {
+                setClassName(context.packageName, context.packageName + ".MainActivity")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             views.setPendingIntentTemplate(
