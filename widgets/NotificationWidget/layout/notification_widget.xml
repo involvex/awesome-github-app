@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:gravity="center_vertical"
     android:padding="12dp"
-    android:background="@drawable/widget_background">
+    android:background="@drawable/notification_widget_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,7 +18,7 @@
             android:id="@+id/icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_github_mark_white" />
+            android:src="@drawable/notification_ic_github_mark_white" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -65,7 +65,7 @@
             android:textColor="#ffffff"
             android:textSize="12sp"
             android:fontFamily="sans-serif-bold"
-            android:background="@drawable/badge_background"
+            android:background="@drawable/notification_badge_background"
             android:visibility="gone" />
 
     </LinearLayout>

@@ -50,7 +50,8 @@ jobs:
       - name: Prebuild Android (Debug variant)
         env:
           APP_VARIANT: debug
-        run: bunx expo prebuild --platform android --no-install --non-interactive
+          CI: "true"
+        run: bunx expo prebuild --platform android --no-install
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v4
@@ -62,6 +63,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-debug-
             ${{ runner.os }}-gradle-
+
+      - name: Clean stale CMake caches
+        run: |
+          echo "Cleaning stale CMake caches to prevent PCH mismatches..."
+          find node_modules -path "*/android/.cxx" -type d -prune -exec rm -rf {} + 2>/dev/null || true
+          rm -rf android/app/.cxx 2>/dev/null || true
+          rm -rf ~/.gradle/caches/build-cache-1/* 2>/dev/null || true
+          echo "CMake and build caches cleaned"
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew

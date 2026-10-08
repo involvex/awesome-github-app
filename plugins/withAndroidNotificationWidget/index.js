@@ -75,12 +75,21 @@ function ensureService(manifest, { className, permission }) {
   });
 }
 
-function copyDirRecursive(src, dest) {
+const SHARED_DRAWABLES = new Set([
+  "widget_background.xml",
+  "ic_github_mark_white.xml",
+  "badge_background.xml",
+]);
+
+function copyDirRecursive(src, dest, widgetPrefix) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, entry.name);
-    const d = path.join(dest, entry.name);
-    if (entry.isDirectory()) copyDirRecursive(s, d);
+    let d = path.join(dest, entry.name);
+    if (entry.isFile() && SHARED_DRAWABLES.has(entry.name)) {
+      d = path.join(dest, widgetPrefix + "_" + entry.name);
+    }
+    if (entry.isDirectory()) copyDirRecursive(s, d, widgetPrefix);
     else if (entry.isFile()) fs.copyFileSync(s, d);
   }
 }
@@ -112,12 +121,17 @@ function syncWidgetsIntoProject(projectRoot, platformRoot) {
   for (const entry of fs.readdirSync(widgetsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name === "shared") continue;
     const dir = path.join(widgetsRoot, entry.name);
+    const widgetPrefix = entry.name
+      .replace(/Widget$/, "")
+      .replace(/([A-Z])/g, "_$1")
+      .toLowerCase()
+      .replace(/^_/, "");
     for (const child of fs.readdirSync(dir, { withFileTypes: true })) {
       const src = path.join(dir, child.name);
       if (child.isFile() && child.name.endsWith(".kt")) {
         fs.copyFileSync(src, path.join(javaRoot, child.name));
       } else if (child.isDirectory()) {
-        copyDirRecursive(src, path.join(resRoot, child.name));
+        copyDirRecursive(src, path.join(resRoot, child.name), widgetPrefix);
       }
     }
   }
