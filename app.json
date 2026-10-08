@@ -1,24 +1,23 @@
 {
   "expo": {
-    "name": "awesome-github-app",
+    "name": "Awesome Github App",
     "slug": "awesome-github-app",
     "owner": "involvex",
-    "version": "0.0.5",
+    "version": "0.0.19",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "githubUrl": "https://github.com/involvex/awesome-github-app.git",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "scheme": "awesomegithubapp",
     "plugins": [
       "expo-router",
       "expo-font",
       "expo-web-browser",
       "expo-image",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-splash-screen",
+      "expo-status-bar",
+      "./plugins/withAndroidNotificationWidget"
     ],
     "android": {
       "package": "com.involvex.awesomegithubapp",
@@ -27,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "userInterfaceStyle": "automatic",
-      "versionCode": 5
+      "versionCode": 18
     },
     "web": {
       "output": "single",
@@ -36,7 +35,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.involvex.awesomegithubapp",
-      "buildNumber": "5",
+      "buildNumber": "18",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

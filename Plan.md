@@ -4,6 +4,36 @@
 
 Build a feature-rich, modern GitHub mobile client as a superior alternative to the official GitHub app. The app targets an audience of active developers who want fast navigation, a beautiful feed, powerful exploration with lots of filters, and full repo management from their phone.
 
+## Current State vs Plan
+
+Many Phase 1–3 items from the original plan are already implemented. This section tracks what is complete vs. what remains.
+
+### Completed
+
+- **Auth:** Real GitHub OAuth via `expo-auth-session` + Cloudflare Worker token exchange
+- **API layer:** `@octokit/rest`, `@octokit/graphql`, TanStack Query v5 client
+- **Navigation:** Expo Router with auth guard, bottom tabs, nested stack screens
+- **Design system:** `Avatar`, `Badge`, `Skeleton`, `ChipFilter`, `LanguageDot`, `StatBar`, `Section`, `SettingsRow`, `EmptyState`
+- **Feed tab:** Activity events, infinite scroll, pull-to-refresh, event-type cards
+- **Explore tab:** Global search, trending repos (period + language + sort filters), trending developers, topics browser
+- **Notifications tab:** Segments (All/Participating/Assigned/Mentioned), grouped list, mark read
+- **Repos tab:** My repos list with filters, infinite scroll, starred repos menu
+- **Profile tab:** Contribution graph, stats, bio, starred repos
+- **Repo detail:** About, Code, Actions, Branches tabs; Settings, Pages, Workflows screens
+- **App settings:** Theme, feed view, date format, push/email notifications, font size, compact mode, analytics
+
+### Remaining
+
+- Issues and PRs list screens (repo detail placeholders exist)
+- Unit tests for API hooks and screens
+- Skeleton loaders across all list screens
+- Optimistic updates + haptic feedback
+- Search history
+- Notification deep-linking to issues/PRs
+- Android home screen widgets
+
+---
+
 **Tech stack already in place:**
 
 - Expo 55 (preview) · React 19.2 · React Native 0.83.2
@@ -275,7 +305,7 @@ Modal/Push screens (pushed from any tab):
 
 ---
 
-## File Structure (target)
+## Current File Structure
 
 ```
 src/
@@ -292,9 +322,7 @@ src/
 │   │   ├── explore/
 │   │   │   ├── _layout.tsx
 │   │   │   ├── index.tsx
-│   │   │   ├── trending.tsx
-│   │   │   ├── developers.tsx
-│   │   │   └── topics.tsx
+│   │   │   └── trending.tsx
 │   │   ├── notifications/
 │   │   │   ├── _layout.tsx
 │   │   │   └── index.tsx
@@ -304,37 +332,41 @@ src/
 │   │   └── profile/
 │   │       ├── _layout.tsx
 │   │       ├── index.tsx
-│   │       └── settings.tsx
+│   │       ├── settings.tsx
+│   │       └── menu.tsx
 │   ├── repo/
 │   │   └── [owner]/
 │   │       └── [repo]/
 │   │           ├── index.tsx
 │   │           ├── settings.tsx
 │   │           ├── pages.tsx
-│   │           ├── workflows.tsx
-│   │           └── workflow/[id].tsx
+│   │           └── workflows.tsx
 │   ├── user/
 │   │   └── [login].tsx
-│   ├── search.tsx
+│   ├── settings/
+│   │   ├── _layout.tsx
+│   │   ├── feed-view.tsx
+│   │   └── date-format.tsx
 │   └── _layout.tsx              ← root stack (auth guard)
 ├── components/
 │   ├── ui/                      ← existing primitives + new ones
-│   ├── feed/                    ← FeedCard, EventCard, StoryBar
-│   ├── explore/                 ← TrendingCard, FilterChips, TopicTile
-│   ├── repo/                    ← RepoHeader, FileTree, IssueRow, WorkflowRow
-│   └── profile/                 ← ContributionGraph, PinnedRepo
-├── lib/
-│   ├── api/
-│   │   ├── github.ts            ← Octokit singleton
-│   │   ├── graphql.ts           ← GraphQL client
-│   │   ├── queryClient.ts       ← TanStack Query client
-│   │   └── hooks/               ← per-feature hooks
-│   ├── storage.ts               ← SecureStore + MMKV helpers
-│   └── theme.ts                 ← extended (keep existing)
-└── contexts/
-    ├── AuthContext.tsx           ← rewrite with real OAuth
-    ├── ThemeContext.tsx          ← keep as-is
-    └── ToastContext.tsx          ← keep as-is
+│   ├── explore/                 ← TrendingCard and explore-specific components
+│   └── layout/                  ← Shared layout components
+├── contexts/
+│   ├── AuthContext.tsx
+│   ├── ThemeContext.tsx
+│   └── ToastContext.tsx
+└── lib/
+    ├── api/
+    │   ├── github.ts            ← Octokit singleton
+    │   ├── graphql.ts           ← GraphQL client
+    │   ├── queryClient.ts       ← TanStack Query client
+    │   └── hooks/               ← per-feature hooks
+    ├── storage.ts               ← SecureStore + MMKV helpers
+    ├── theme.ts                 ← Light/dark theme tokens
+    └── hooks/
+        ├── index.ts
+        └── usePreferences.ts   ← App preferences with AsyncStorage
 ```
 
 ---

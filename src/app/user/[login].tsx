@@ -4,13 +4,19 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
 } from "react-native";
+import { useToast } from "../../contexts/ToastContext";
 import { Avatar } from "../../components/ui/Avatar";
 import { useLocalSearchParams } from "expo-router";
 import { getOctokit } from "../../lib/api/github";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppTheme } from "../../lib/theme";
+import * as Clipboard from "expo-clipboard";
+import { haptic } from "../../lib/haptics";
+import { useRouter } from "expo-router";
+import { Share } from "react-native";
 
 function useUser(login: string) {
   return useQuery({
@@ -27,7 +33,26 @@ function useUser(login: string) {
 export default function UserProfileScreen() {
   const { login } = useLocalSearchParams<{ login: string }>();
   const theme = useAppTheme();
+  const router = useRouter();
+  const { showToast } = useToast();
   const { data: user, isLoading } = useUser(login!);
+
+  async function handleCopyLink() {
+    if (!user?.html_url) return;
+    await Clipboard.setStringAsync(user.html_url);
+    showToast("Profile link copied", "success");
+    haptic("success");
+  }
+
+  async function handleShare() {
+    if (!user?.html_url) return;
+    try {
+      await Share.share({ message: user.html_url });
+      haptic("light");
+    } catch {
+      // share sheet dismissed — ignore
+    }
+  }
 
   if (isLoading) {
     return (
@@ -47,6 +72,35 @@ export default function UserProfileScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={styles.scroll}
     >
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <Pressable onPress={() => router.back()}>
+          <Ionicons
+            name="arrow-back"
+            size={22}
+            color={theme.text}
+          />
+        </Pressable>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {user.login}
+        </Text>
+        <View style={styles.headerActions}>
+          <Pressable onPress={handleCopyLink}>
+            <Ionicons
+              name="copy-outline"
+              size={20}
+              color={theme.text}
+            />
+          </Pressable>
+          <Pressable onPress={handleShare}>
+            <Ionicons
+              name="share-outline"
+              size={20}
+              color={theme.text}
+            />
+          </Pressable>
+        </View>
+      </View>
+
       <View
         style={[
           styles.profileCard,
@@ -123,6 +177,17 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loader: { flex: 1 },
   scroll: { padding: 16, gap: 16, paddingBottom: 60 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 56,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  headerTitle: { flex: 1, fontSize: 22, fontWeight: "800" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
   profileCard: {
     borderRadius: 16,
     padding: 20,

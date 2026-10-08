@@ -11,6 +11,12 @@ jest.mock("../../src/contexts/AuthContext", () => ({
   ),
 }));
 
+// Prevent real GET /rate_limit network call from useRateLimitWarning in _layout
+jest.mock("../../src/lib/rateLimit", () => ({
+  checkRateLimit: jest.fn(async () => null),
+  getLastKnownRateLimit: jest.fn(() => null),
+}));
+
 import RootLayout from "../../src/app/_layout";
 
 describe("RootLayout auth gating", () => {

@@ -5,7 +5,7 @@ import { useAppTheme } from "../../lib/theme";
 import { useRouter } from "expo-router";
 
 const options = [
-  { value: "activity", label: "Recent activity" },
+  { value: "activity", label: "Activity feed" },
   { value: "repos", label: "Repositories" },
 ] as const;
 

@@ -1,16 +1,43 @@
 export { useActivity } from "./useActivity";
-export { useTrending, type TrendingPeriod } from "./useTrending";
+export { useReleases, type Release } from "./useReleases";
+export {
+  useTrending,
+  type TrendingPeriod,
+  type TrendingMode,
+  type TrendingRepoItem,
+} from "./useTrending";
 export {
   useRepo,
   useRepoTopics,
   useRepoReadme,
+  useRepoContents,
   useUpdateRepo,
   useUpdateTopics,
+  useCreateFork,
+  useBranches,
+  useStarRepo,
+  useUnstarRepo,
+  useWatchRepo,
+  useUnwatchRepo,
+  useIssues,
+  usePullRequests,
+  type Issue,
+  type PullRequest,
+  type IssueState,
+  type PRState,
 } from "./useRepo";
+export { useRepoReleases, type RepoRelease } from "./useRepoReleases";
+export {
+  useFileContent,
+  isViewableTextFile,
+  languageFromFileName,
+  type FileContent,
+} from "./useFileContent";
 export {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllRead,
+  type NotificationThread,
 } from "./useNotifications";
 export {
   useSearch,
@@ -18,6 +45,8 @@ export {
   type SearchRepoItem,
   type SearchUserItem,
   type SearchIssueItem,
+  type RepoSortOption,
+  type SearchOptions,
 } from "./useSearch";
 export { useMyRepos, type RepoFilter, type RepoSort } from "./useMyRepos";
 export {
@@ -32,4 +61,6 @@ export {
   useWorkflowRuns,
   useDispatchWorkflow,
   useCancelRun,
+  useRunArtifacts,
+  useDownloadArtifact,
 } from "./useWorkflows";

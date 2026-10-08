@@ -3,12 +3,7 @@ import { getOctokit } from "../github";
 
 // "forks" and "sources" are not valid Octokit API values; map them to "all" with client-side filter
 export type RepoFilter =
-  | "all"
-  | "owner"
-  | "public"
-  | "private"
-  | "forks"
-  | "member";
+  "all" | "owner" | "public" | "private" | "forks" | "member";
 export type RepoSort = "created" | "updated" | "pushed" | "full_name";
 
 type OctokitRepoType = "all" | "owner" | "public" | "private" | "member";

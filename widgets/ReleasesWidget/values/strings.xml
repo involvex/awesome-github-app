@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_widget_desc">GitHub unread notifications at a glance</string>
+    <string name="releases_widget_desc">Recent releases from your repositories</string>
+    <string name="pr_inbox_widget_desc">Open pull requests assigned to you</string>
+</resources>

@@ -1,28 +1,32 @@
 import {
-  ActivityIndicator,
+  useMarkAllRead,
+  useMarkNotificationRead,
+  useNotifications,
+  type NotificationThread,
+} from "../../../lib/api/hooks";
+import {
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import {
-  useMarkAllRead,
-  useMarkNotificationRead,
-  useNotifications,
-} from "../../../lib/api/hooks";
-import { Badge } from "../../../components/ui/Badge";
+import { refreshPrInboxWidget } from "../../../lib/widgets/backgroundSync";
+import { Badge, SkeletonCard, EmptyState } from "../../../components/ui";
+import { syncNotificationsToWidget } from "../../../lib/widgetData";
+import { parseNotificationTarget } from "../../../lib/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "../../../contexts/ToastContext";
+import { toSafeGitHubUrl } from "../../../lib/security";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useRouter } from "expo-router";
 
 type Segment = "all" | "participating" | "assigned" | "mentioned";
-
-type NotificationItem = NonNullable<
-  ReturnType<typeof useNotifications>["data"]
->[number];
 
 const SEGMENTS: { label: string; value: Segment }[] = [
   { label: "All", value: "all" },
@@ -39,9 +43,18 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Commit: "git-commit-outline",
 };
 
-function NotifRow({ item }: { item: NotificationItem }) {
+function NotifRow({
+  item,
+  onMarkRead,
+  onOpen,
+  isMarking,
+}: {
+  item: NotificationThread;
+  onMarkRead: (id: string) => void;
+  onOpen: (item: NotificationThread) => void;
+  isMarking: boolean;
+}) {
   const theme = useAppTheme();
-  const { mutate: markRead } = useMarkNotificationRead();
   const isUnread = item.unread;
   const icon = TYPE_ICON[item.subject?.type] ?? "notifications-outline";
 
@@ -54,7 +67,12 @@ function NotifRow({ item }: { item: NotificationItem }) {
           backgroundColor: isUnread ? theme.surface : theme.background,
         },
       ]}
-      onPress={() => markRead(item.id)}
+      disabled={isMarking}
+      onPress={() => {
+        haptic("light");
+        if (isUnread) onMarkRead(item.id);
+        onOpen(item);
+      }}
     >
       <View style={styles.rowLeft}>
         {isUnread && (
@@ -82,8 +100,15 @@ function NotifRow({ item }: { item: NotificationItem }) {
       </View>
       {isUnread && (
         <Pressable
-          onPress={() => markRead(item.id)}
+          onPress={e => {
+            e?.stopPropagation?.();
+            haptic("success");
+            onMarkRead(item.id);
+          }}
+          disabled={isMarking}
           style={styles.readBtn}
+          hitSlop={8}
+          accessibilityLabel="Mark as read"
         >
           <Ionicons
             name="checkmark-circle-outline"
@@ -98,11 +123,71 @@ function NotifRow({ item }: { item: NotificationItem }) {
 
 export default function NotificationsScreen() {
   const theme = useAppTheme();
+  const router = useRouter();
+  const { showToast } = useToast();
   const [segment, setSegment] = useState<Segment>("all");
-  const { data, isLoading, refetch, isRefetching } = useNotifications();
-  const { mutate: markAll, isPending } = useMarkAllRead();
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const { data, isLoading, refetch } = useNotifications();
+  const { mutate: markRead, isPending: isMarkingOne } =
+    useMarkNotificationRead();
+  const { mutate: markAll, isPending: isMarkingAll } = useMarkAllRead();
 
-  const filtered = (data ?? []).filter((n: NotificationItem) => {
+  const handleMarkRead = useCallback(
+    (id: string) => {
+      markRead(id, {
+        onError: (err: unknown) => {
+          const message =
+            err instanceof Error ? err.message : "Could not mark as read";
+          showToast(message, "error");
+        },
+      });
+    },
+    [markRead, showToast],
+  );
+
+  const handleMarkAll = () => {
+    markAll(undefined, {
+      onError: (err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : "Could not mark all as read";
+        showToast(message, "error");
+      },
+      onSuccess: () => showToast("All notifications marked as read", "success"),
+    });
+  };
+
+  const handlePullRefresh = async () => {
+    setPullRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setPullRefreshing(false);
+    }
+  };
+
+  const handleOpen = useCallback(
+    (item: NotificationThread) => {
+      const target = parseNotificationTarget(item);
+      if (target) {
+        router.push(target.route as never);
+        return;
+      }
+      const fallback = item.subject?.url;
+      if (fallback) {
+        const safeUrl = toSafeGitHubUrl(fallback);
+        if (safeUrl) {
+          void Linking.openURL(safeUrl).catch(() => {
+            showToast("Could not open notification", "error");
+          });
+        } else {
+          showToast("Unsafe link blocked", "error");
+        }
+      }
+    },
+    [router, showToast],
+  );
+
+  const filtered = (data ?? []).filter((n: NotificationThread) => {
     if (segment === "all") return true;
     if (segment === "participating") return n.reason === "participating";
     if (segment === "assigned") return n.reason === "assign";
@@ -111,8 +196,20 @@ export default function NotificationsScreen() {
   });
 
   const unreadCount = (data ?? []).filter(
-    (n: NotificationItem) => n.unread,
+    (n: NotificationThread) => n.unread,
   ).length;
+  const prevUnreadCountRef = useRef(unreadCount);
+
+  useEffect(() => {
+    if (prevUnreadCountRef.current !== unreadCount) {
+      prevUnreadCountRef.current = unreadCount;
+      void syncNotificationsToWidget(data ?? []);
+    }
+  }, [unreadCount, data]);
+
+  useEffect(() => {
+    void refreshPrInboxWidget();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -123,11 +220,21 @@ export default function NotificationsScreen() {
           </Text>
           {unreadCount > 0 && <Badge count={unreadCount} />}
           <Pressable
-            onPress={() => markAll()}
-            disabled={isPending}
+            onPress={handleMarkAll}
+            disabled={isMarkingAll || unreadCount === 0}
           >
-            <Text style={[styles.markAll, { color: theme.primary }]}>
-              {isPending ? "…" : "Mark all read"}
+            <Text
+              style={[
+                styles.markAll,
+                {
+                  color:
+                    isMarkingAll || unreadCount === 0
+                      ? theme.muted
+                      : theme.primary,
+                },
+              ]}
+            >
+              {isMarkingAll ? "…" : "Mark all read"}
             </Text>
           </Pressable>
         </View>
@@ -163,29 +270,48 @@ export default function NotificationsScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
+        <View style={styles.skeletonList}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <NotifRow item={item} />}
+          renderItem={({ item }) => (
+            <NotifRow
+              item={item}
+              onMarkRead={handleMarkRead}
+              onOpen={handleOpen}
+              isMarking={isMarkingOne || isMarkingAll}
+            />
+          )}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
+              refreshing={pullRefreshing}
+              onRefresh={handlePullRefresh}
+              tintColor={theme.primary}
             />
           }
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              {segment === "all"
-                ? "You're all caught up! 🎉"
-                : `No ${segment} notifications.`}
-            </Text>
+            <EmptyState
+              icon="checkmark-done-outline"
+              title={
+                segment === "all"
+                  ? "You're all caught up!"
+                  : `No ${segment} notifications.`
+              }
+              description={
+                segment === "all" ? "New activity will appear here." : undefined
+              }
+            />
           }
           contentContainerStyle={{ paddingBottom: 40 }}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
         />
       )}
     </View>
@@ -213,7 +339,7 @@ const styles = StyleSheet.create({
   },
   segment: { flex: 1, paddingVertical: 7, alignItems: "center" },
   segmentText: { fontSize: 12, fontWeight: "600" },
-  loader: { flex: 1 },
+  skeletonList: { padding: 12, gap: 10 },
   row: {
     flexDirection: "row",
     paddingVertical: 14,

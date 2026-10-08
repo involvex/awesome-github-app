@@ -44,6 +44,13 @@ jest.mock("expo-secure-store", () => ({
   deleteItemAsync: jest.fn(async () => undefined),
 }));
 
+jest.mock("expo-image", () => ({
+  Image: ({ source, ...props }) => {
+    const React = require("react");
+    return React.createElement("img", { src: source?.uri, ...props });
+  },
+}));
+
 jest.mock("expo-router", () => {
   const React = require("react");
   const Stack = ({ children }) => <>{children}</>;

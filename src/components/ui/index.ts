@@ -6,13 +6,14 @@ export { Card } from "./Card";
 export { Input } from "./Input";
 export { Avatar } from "./Avatar";
 export { Badge } from "./Badge";
-export { Skeleton, SkeletonCard } from "./Skeleton";
+export { Skeleton, SkeletonCard, SkeletonContributionGraph } from "./Skeleton";
 export { ChipFilter } from "./ChipFilter";
 export { LanguageDot } from "./LanguageDot";
 export { StatBar } from "./StatBar";
 export { EmptyState } from "./EmptyState";
 export { Section } from "./Section";
 export { SettingsRow } from "./SettingsRow";
+export { ReleaseCard, type ReleaseCardProps } from "./ReleaseCard";
 
 // New components
 export { ButtonGroup } from "./ButtonGroup";

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 import { Toast } from "../components/ui/Toast";
 import { View } from "react-native";
 
-type ToastType = "success" | "error" | "info";
+type ToastType = "success" | "error" | "info" | "warning";
 
 interface Toast {
   id: string;

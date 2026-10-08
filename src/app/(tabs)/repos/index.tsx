@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -8,15 +7,24 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useMyRepos, type RepoFilter } from "../../../lib/api/hooks";
+import {
+  useMyRepos,
+  useStarRepo,
+  useUnstarRepo,
+  type RepoFilter,
+} from "../../../lib/api/hooks";
+import { SkeletonCard, EmptyState } from "../../../components/ui";
 import { LanguageDot } from "../../../components/ui/LanguageDot";
 import { ChipFilter } from "../../../components/ui/ChipFilter";
+import { useToast } from "../../../contexts/ToastContext";
 import { StatBar } from "../../../components/ui/StatBar";
+import { getItem, setItem } from "../../../lib/storage";
 import { useAppTheme } from "../../../lib/theme";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 
 type MyRepo = NonNullable<
   ReturnType<typeof useMyRepos>["data"]
@@ -30,16 +38,51 @@ const FILTERS: { label: string; value: RepoFilter }[] = [
   { label: "Forked", value: "forks" },
 ];
 
-function RepoCard({ item }: { item: MyRepo }) {
+function RepoCard({
+  item,
+  isStarred,
+  onToggleStar,
+}: {
+  item: MyRepo;
+  isStarred: boolean;
+  onToggleStar: (next: boolean) => void;
+}) {
   const theme = useAppTheme();
   const router = useRouter();
+  const { showToast } = useToast();
+  const starMutation = useStarRepo(item.owner.login, item.name);
+  const unstarMutation = useUnstarRepo(item.owner.login, item.name);
+
+  async function handleStarPress() {
+    if (isStarred) {
+      try {
+        await unstarMutation.mutateAsync();
+        onToggleStar(false);
+        haptic("success");
+      } catch {
+        showToast("Failed to unstar repository", "error");
+      }
+    } else {
+      try {
+        await starMutation.mutateAsync();
+        onToggleStar(true);
+        haptic("success");
+      } catch {
+        showToast("Failed to star repository", "error");
+      }
+    }
+  }
+
   return (
     <Pressable
       style={[
         styles.card,
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
-      onPress={() => router.push(`/repo/${item.owner.login}/${item.name}`)}
+      onPress={() => {
+        haptic("light");
+        router.push(`/repo/${item.owner.login}/${item.name}`);
+      }}
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.repoName, { color: theme.primary }]}>
@@ -69,6 +112,19 @@ function RepoCard({ item }: { item: MyRepo }) {
             </Text>
           </View>
         )}
+        <Pressable
+          hitSlop={8}
+          onPress={handleStarPress}
+          accessibilityLabel={
+            isStarred ? "Unstar repository" : "Star repository"
+          }
+        >
+          <Ionicons
+            name={isStarred ? "star" : "star-outline"}
+            size={18}
+            color={isStarred ? theme.primary : theme.muted}
+          />
+        </Pressable>
       </View>
       {!!item.description && (
         <Text
@@ -101,8 +157,29 @@ export default function ReposScreen() {
   const theme = useAppTheme();
   const [filter, setFilter] = useState<RepoFilter>("owner");
   const [search, setSearch] = useState("");
+  const [starredSet, setStarredSet] = useState<Set<number | string>>(new Set());
+  const [starredLoaded, setStarredLoaded] = useState(false);
   const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
     useMyRepos(filter, "updated");
+
+  useEffect(() => {
+    getItem("starred_repo_ids").then(stored => {
+      if (stored) {
+        try {
+          const ids = JSON.parse(stored) as (number | string)[];
+          setStarredSet(new Set(ids));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      setStarredLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!starredLoaded) return;
+    setItem("starred_repo_ids", JSON.stringify([...starredSet]));
+  }, [starredSet, starredLoaded]);
   const allRepos = data?.pages.flat() ?? [];
   const filtered = search
     ? allRepos.filter((r: MyRepo) =>
@@ -143,18 +220,36 @@ export default function ReposScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator
-          style={styles.loader}
-          color={theme.primary}
-        />
+        <View style={styles.skeletonList}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => <RepoCard item={item} />}
+          renderItem={({ item }) => (
+            <RepoCard
+              item={item}
+              isStarred={starredSet.has(item.id)}
+              onToggleStar={next =>
+                setStarredSet(prev => {
+                  const nextSet = new Set(prev);
+                  if (next) nextSet.add(item.id);
+                  else nextSet.delete(item.id);
+                  return nextSet;
+                })
+              }
+            />
+          )}
           contentContainerStyle={styles.list}
           onEndReached={() => hasNextPage && fetchNextPage()}
           onEndReachedThreshold={0.4}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -162,9 +257,15 @@ export default function ReposScreen() {
             />
           }
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: theme.subtle }]}>
-              No repositories found.
-            </Text>
+            <EmptyState
+              icon="book-outline"
+              title="No repositories found"
+              description={
+                search
+                  ? "Try a different search term or filter."
+                  : "Repos will appear here once you have some."
+              }
+            />
           }
         />
       )}
@@ -193,6 +294,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14 },
   loader: { flex: 1 },
+  skeletonList: { padding: 12, gap: 10 },
   list: { padding: 12, gap: 10 },
   card: {
     borderRadius: 12,

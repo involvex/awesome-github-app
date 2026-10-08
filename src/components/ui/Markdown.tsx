@@ -1,8 +1,15 @@
+import {
+  ImageStyle,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
 import MarkdownDisplay, {
   ASTNode,
   RenderRules,
 } from "react-native-markdown-display";
-import { StyleSheet, View } from "react-native";
 import { useAppTheme } from "../../lib/theme";
 import { Image } from "expo-image";
 import { ReactNode } from "react";
@@ -19,7 +26,7 @@ export function Markdown({ children }: MarkdownProps) {
       node: ASTNode,
       children: ReactNode[],
       parent: ASTNode[],
-      styles: Record<string, any>,
+      styles: Record<string, ViewStyle | TextStyle | ImageStyle>,
     ) => {
       const { src, alt } = node.attributes;
       return (
@@ -27,12 +34,52 @@ export function Markdown({ children }: MarkdownProps) {
           key={node.key}
           source={{ uri: src }}
           style={[
-            styles.image,
+            styles.image as ImageStyle,
             { maxWidth: "100%", height: "auto", minHeight: 20 },
           ]}
           contentFit="contain"
           accessibilityLabel={alt}
         />
+      );
+    },
+    // Render HTML blocks as plain text by stripping tags so they don't show
+    // as raw markup (react-native-markdown-display does not parse HTML).
+    // Iterative stripping prevents bypass via nested/malformed tags like
+    // <<script>script> which survive a single-pass regex.
+    html_block: (node: ASTNode) => {
+      let s = node.content as string;
+      let prev: string;
+      do {
+        prev = s;
+        s = prev.replace(/<[^>]*>/g, "");
+      } while (s !== prev);
+      const stripped = s.trim();
+      if (!stripped) return null;
+      return (
+        <Text
+          key={node.key}
+          style={{ color: theme.text, fontSize: 15, lineHeight: 22 }}
+        >
+          {stripped}
+        </Text>
+      );
+    },
+    html_inline: (node: ASTNode) => {
+      let s = node.content as string;
+      let prev: string;
+      do {
+        prev = s;
+        s = prev.replace(/<[^>]*>/g, "");
+      } while (s !== prev);
+      const stripped = s.trim();
+      if (!stripped) return null;
+      return (
+        <Text
+          key={node.key}
+          style={{ color: theme.text, fontSize: 15 }}
+        >
+          {stripped}
+        </Text>
       );
     },
   };
@@ -90,6 +137,15 @@ export function Markdown({ children }: MarkdownProps) {
       fontFamily: "monospace",
     },
     code_block: {
+      backgroundColor: theme.surface,
+      color: theme.text,
+      borderRadius: 8,
+      padding: 12,
+      fontFamily: "monospace",
+      marginVertical: 10,
+    },
+    // `fence` is used for triple-backtick code blocks; must match code_block
+    fence: {
       backgroundColor: theme.surface,
       color: theme.text,
       borderRadius: 8,

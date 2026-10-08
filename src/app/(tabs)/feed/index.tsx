@@ -9,13 +9,27 @@ import {
   Text,
   View,
 } from "react-native";
+import { useActivity, useReleases } from "../../../lib/api/hooks";
+import { syncReleasesWidget } from "../../../lib/widgets/sync";
+import { Avatar, ReleaseCard } from "../../../components/ui";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useActivity } from "../../../lib/api/hooks";
+import { useEffect, useMemo, useState } from "react";
 import { useAppTheme } from "../../../lib/theme";
-import { Avatar } from "../../../components/ui";
 import { formatDistanceToNow } from "date-fns";
+import { haptic } from "../../../lib/haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+
+type FeedTab = "activity" | "releases";
+
+const FEED_TABS: {
+  label: string;
+  value: FeedTab;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { label: "Activity", value: "activity", icon: "pulse-outline" },
+  { label: "My Releases", value: "releases", icon: "rocket-outline" },
+];
 
 type ActivityEvent = NonNullable<
   ReturnType<typeof useActivity>["data"]
@@ -51,49 +65,49 @@ const EVENT_TYPES: {
   {
     value: "PushEvent",
     label: "Push",
-    description: "Code pushes to branches",
+    description: "Code pushes",
     icon: "git-commit-outline",
   },
   {
     value: "PullRequestEvent",
-    label: "Pull Requests",
-    description: "Opened, closed, or merged",
+    label: "PRs",
+    description: "Pull requests",
     icon: "git-pull-request-outline",
   },
   {
     value: "IssuesEvent",
     label: "Issues",
-    description: "Opened or closed issues",
+    description: "Issues",
     icon: "alert-circle-outline",
   },
   {
     value: "WatchEvent",
     label: "Stars",
-    description: "Repository stars",
+    description: "Stars",
     icon: "star-outline",
   },
   {
     value: "ForkEvent",
     label: "Forks",
-    description: "Repository forks",
+    description: "Forks",
     icon: "git-branch-outline",
   },
   {
     value: "IssueCommentEvent",
     label: "Comments",
-    description: "Issue & PR comments",
+    description: "Comments",
     icon: "chatbubble-outline",
   },
   {
     value: "CreateEvent",
     label: "Create",
-    description: "Branches, tags, repositories",
+    description: "Created",
     icon: "add-circle-outline",
   },
   {
     value: "ReleaseEvent",
     label: "Releases",
-    description: "New releases published",
+    description: "Releases",
     icon: "rocket-outline",
   },
 ];
@@ -111,36 +125,146 @@ const ICON_MAP: Record<string, { icon: string; label: string }> = {
   PublicEvent: { icon: "globe", label: "made public" },
 };
 
-function EventCard({ event }: { event: ActivityEvent }) {
+type FeedRow =
+  | { kind: "single"; event: ActivityEvent }
+  | {
+      kind: "pushGroup";
+      id: string;
+      actorLogin: string;
+      actorAvatar?: string;
+      repoName: string;
+      events: ActivityEvent[];
+      latest: ActivityEvent;
+    };
+
+function parseRepoPath(fullName: string | undefined): {
+  owner: string;
+  repo: string;
+} | null {
+  if (!fullName) return null;
+  const [owner, repo] = fullName.split("/");
+  if (!owner || !repo) return null;
+  return { owner, repo };
+}
+
+function collapsePushEvents(events: ActivityEvent[]): FeedRow[] {
+  const rows: FeedRow[] = [];
+  let i = 0;
+  while (i < events.length) {
+    const event = events[i];
+    if (event.type !== "PushEvent") {
+      rows.push({ kind: "single", event });
+      i += 1;
+      continue;
+    }
+
+    const actorLogin = event.actor?.login ?? "";
+    const repoName = event.repo?.name ?? "";
+    const group: ActivityEvent[] = [event];
+    let j = i + 1;
+    while (j < events.length) {
+      const next = events[j];
+      if (
+        next.type === "PushEvent" &&
+        (next.actor?.login ?? "") === actorLogin &&
+        (next.repo?.name ?? "") === repoName
+      ) {
+        group.push(next);
+        j += 1;
+      } else {
+        break;
+      }
+    }
+
+    if (group.length === 1) {
+      rows.push({ kind: "single", event });
+    } else {
+      rows.push({
+        kind: "pushGroup",
+        id: `push-${group[0].id}-${group.length}`,
+        actorLogin,
+        actorAvatar: event.actor?.avatar_url,
+        repoName,
+        events: group,
+        latest: group[0],
+      });
+    }
+    i = j;
+  }
+  return rows;
+}
+
+function EventRow({
+  event,
+  pushCount,
+}: {
+  event: ActivityEvent;
+  pushCount?: number;
+}) {
   const theme = useAppTheme();
-  const { icon, label } = ICON_MAP[event.type ?? ""] ?? {
-    icon: "ellipsis-horizontal",
-    label: "activity on",
-  };
+  const router = useRouter();
+  const isGroupedPush = (pushCount ?? 1) > 1;
+  const { icon, label } = isGroupedPush
+    ? {
+        icon: "git-commit",
+        label: `pushed ${pushCount} times to`,
+      }
+    : (ICON_MAP[event.type ?? ""] ?? {
+        icon: "ellipsis-horizontal",
+        label: "activity on",
+      });
+
+  const repoPath = parseRepoPath(event.repo?.name);
+  const commitMessage =
+    event.type === "PushEvent"
+      ? (event.payload as { commits?: Array<{ message: string }> })
+          ?.commits?.[0]?.message
+      : undefined;
 
   return (
-    <View
-      style={[
-        styles.eventCard,
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}
-    >
-      <View style={styles.eventLeft}>
+    <View style={[styles.eventRow, { borderBottomColor: theme.border }]}>
+      <Pressable
+        onPress={() => {
+          haptic("light");
+          if (event.actor?.login) router.push(`/user/${event.actor.login}`);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`View ${event.actor?.login ?? "user"}`}
+        style={styles.eventLeft}
+      >
         <Avatar
           uri={event.actor?.avatar_url}
           name={event.actor?.login}
-          size={32}
+          size={28}
         />
         <Ionicons
           name={icon as keyof typeof Ionicons.glyphMap}
-          size={14}
+          size={12}
           color={theme.primary}
-          style={[styles.eventIconBadge, { backgroundColor: theme.surface }]}
+          style={[styles.eventIconBadge, { backgroundColor: theme.background }]}
         />
-      </View>
-      <View style={styles.eventBody}>
+      </Pressable>
+      <Pressable
+        style={styles.eventBody}
+        onPress={() => {
+          haptic("light");
+          if (repoPath) {
+            router.push(`/repo/${repoPath.owner}/${repoPath.repo}`);
+          }
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${event.repo?.name ?? "repository"}`}
+      >
         <Text style={[styles.eventActor, { color: theme.text }]}>
-          {event.actor?.login}{" "}
+          <Text
+            onPress={() => {
+              haptic("light");
+              if (event.actor?.login) router.push(`/user/${event.actor.login}`);
+            }}
+            style={{ color: theme.text, fontWeight: "600" }}
+          >
+            {event.actor?.login}
+          </Text>{" "}
           <Text style={[styles.eventLabel, { color: theme.subtle }]}>
             {label}{" "}
           </Text>
@@ -148,22 +272,14 @@ function EventCard({ event }: { event: ActivityEvent }) {
             {event.repo?.name}
           </Text>
         </Text>
-        {event.type === "PushEvent" &&
-          (event.payload as { commits?: Array<{ message: string }> })
-            ?.commits?.[0] && (
-            <Text
-              style={[styles.eventMeta, { color: theme.subtle }]}
-              numberOfLines={1}
-            >
-              {
-                (
-                  event.payload as {
-                    commits?: Array<{ message: string }>;
-                  }
-                ).commits![0].message
-              }
-            </Text>
-          )}
+        {!!commitMessage && !isGroupedPush && (
+          <Text
+            style={[styles.eventMeta, { color: theme.subtle }]}
+            numberOfLines={1}
+          >
+            {commitMessage}
+          </Text>
+        )}
         <Text style={[styles.eventTime, { color: theme.muted }]}>
           {event.created_at
             ? formatDistanceToNow(new Date(event.created_at), {
@@ -171,7 +287,7 @@ function EventCard({ event }: { event: ActivityEvent }) {
               })
             : ""}
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -192,7 +308,7 @@ function FilterModal({
 
   useEffect(() => {
     if (visible) setDraft([...activeFilters]);
-  }, [visible]);
+  }, [visible, activeFilters]);
 
   function toggle(value: EventFilter) {
     setDraft(prev =>
@@ -226,7 +342,6 @@ function FilterModal({
           ]}
         >
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: theme.text }]}>
               Filter Events
@@ -235,7 +350,6 @@ function FilterModal({
               {isAll ? "All types" : `${draft.length} selected`}
             </Text>
           </View>
-
           <ScrollView
             style={styles.filterList}
             showsVerticalScrollIndicator={false}
@@ -245,7 +359,10 @@ function FilterModal({
               return (
                 <Pressable
                   key={et.value}
-                  onPress={() => toggle(et.value)}
+                  onPress={() => {
+                    haptic("light");
+                    toggle(et.value);
+                  }}
                   style={({ pressed }) => [
                     styles.filterRow,
                     { borderBottomColor: theme.border },
@@ -298,10 +415,12 @@ function FilterModal({
               );
             })}
           </ScrollView>
-
           <View style={[styles.sheetFooter, { borderTopColor: theme.border }]}>
             <Pressable
-              onPress={() => setDraft([...ALL_FILTERS])}
+              onPress={() => {
+                haptic("medium");
+                setDraft([...ALL_FILTERS]);
+              }}
               style={({ pressed }) => [
                 styles.btnReset,
                 { borderColor: theme.border },
@@ -313,7 +432,10 @@ function FilterModal({
               </Text>
             </Pressable>
             <Pressable
-              onPress={handleSave}
+              onPress={() => {
+                haptic("success");
+                handleSave();
+              }}
               style={({ pressed }) => [
                 styles.btnSave,
                 { backgroundColor: theme.primary },
@@ -332,41 +454,118 @@ function FilterModal({
 export default function FeedScreen() {
   const { user } = useAuth();
   const theme = useAppTheme();
-  const { data, isLoading, fetchNextPage, hasNextPage, refetch, isRefetching } =
-    useActivity(user?.login ?? "");
+  const router = useRouter();
+  const [tab, setTab] = useState<FeedTab>("activity");
   const [activeFilters, setActiveFilters] =
     useState<EventFilter[]>(ALL_FILTERS);
   const [filterVisible, setFilterVisible] = useState(false);
 
-  const allEvents = data?.pages.flat() ?? [];
+  const {
+    data: activityData,
+    isLoading: isActivityLoading,
+    fetchNextPage,
+    hasNextPage,
+    refetch: refetchActivity,
+    isRefetching: isActivityRefetching,
+  } = useActivity(user?.login ?? "");
+
+  const {
+    data: releasesData,
+    refetch: refetchReleases,
+    isRefetching: isReleasesRefetching,
+    isLoading: isReleasesLoading,
+  } = useReleases(user?.login ?? "");
+
+  useEffect(() => {
+    if (releasesData && releasesData.length > 0) {
+      void syncReleasesWidget(releasesData);
+    }
+  }, [releasesData]);
+
+  const allEvents = activityData?.pages.flat() ?? [];
   const hasCustomFilter = activeFilters.length < ALL_FILTERS.length;
-  const events = hasCustomFilter
+  const filteredEvents = hasCustomFilter
     ? allEvents.filter(e => activeFilters.includes(e.type as EventFilter))
     : allEvents;
+
+  const feedRows = useMemo(
+    () => collapsePushEvents(filteredEvents),
+    [filteredEvents],
+  );
+
+  const isLoading = tab === "activity" ? isActivityLoading : isReleasesLoading;
+  const isRefetching =
+    tab === "activity" ? isActivityRefetching : isReleasesRefetching;
+  const refetch = tab === "activity" ? refetchActivity : refetchReleases;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Feed</Text>
-        <Pressable
-          onPress={() => setFilterVisible(true)}
-          style={({ pressed }) => [
-            styles.filterBtn,
-            pressed && { opacity: 0.6 },
-          ]}
-          accessibilityLabel="Filter events"
-        >
-          <Ionicons
-            name="options-outline"
-            size={22}
-            color={hasCustomFilter ? theme.primary : theme.subtle}
-          />
-          {hasCustomFilter && (
-            <View
-              style={[styles.filterDot, { backgroundColor: theme.primary }]}
+        {tab === "activity" && (
+          <Pressable
+            onPress={() => {
+              haptic("light");
+              setFilterVisible(true);
+            }}
+            style={({ pressed }) => [
+              styles.filterBtn,
+              pressed && { opacity: 0.6 },
+            ]}
+            accessibilityLabel="Filter events"
+          >
+            <Ionicons
+              name="options-outline"
+              size={22}
+              color={hasCustomFilter ? theme.primary : theme.subtle}
             />
-          )}
-        </Pressable>
+            {hasCustomFilter && (
+              <View
+                style={[styles.filterDot, { backgroundColor: theme.primary }]}
+              />
+            )}
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.tabFilter}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScroll}
+        >
+          {FEED_TABS.map(t => (
+            <Pressable
+              key={t.value}
+              onPress={() => {
+                haptic("selection");
+                setTab(t.value);
+              }}
+              style={[
+                styles.tabBtn,
+                {
+                  backgroundColor:
+                    tab === t.value ? theme.primary : theme.surface,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name={t.icon}
+                size={16}
+                color={tab === t.value ? "#fff" : theme.subtle}
+              />
+              <Text
+                style={[
+                  styles.tabBtnText,
+                  { color: tab === t.value ? "#fff" : theme.text },
+                ]}
+              >
+                {t.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       <FilterModal
@@ -381,11 +580,22 @@ export default function FeedScreen() {
           style={styles.loader}
           color={theme.primary}
         />
-      ) : (
+      ) : tab === "activity" ? (
         <FlatList
-          data={events}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <EventCard event={item} />}
+          data={feedRows}
+          keyExtractor={item =>
+            item.kind === "single" ? item.event.id : item.id
+          }
+          renderItem={({ item }) =>
+            item.kind === "single" ? (
+              <EventRow event={item.event} />
+            ) : (
+              <EventRow
+                event={item.latest}
+                pushCount={item.events.length}
+              />
+            )
+          }
           contentContainerStyle={styles.list}
           onEndReached={() => hasNextPage && fetchNextPage()}
           onEndReachedThreshold={0.3}
@@ -398,7 +608,34 @@ export default function FeedScreen() {
           }
           ListEmptyComponent={
             <Text style={[styles.empty, { color: theme.subtle }]}>
-              No recent activity. Follow some users!
+              No recent activity from people you follow
+            </Text>
+          }
+        />
+      ) : (
+        <FlatList
+          data={releasesData ?? []}
+          keyExtractor={item => String(item.id)}
+          renderItem={({ item }) => (
+            <ReleaseCard
+              release={item}
+              onPress={() => {
+                const [owner, repo] = item.repo.full_name.split("/");
+                if (owner && repo) router.push(`/repo/${owner}/${repo}`);
+              }}
+            />
+          )}
+          contentContainerStyle={styles.releasesList}
+          refreshControl={
+            <RefreshControl
+              refreshing={isReleasesRefetching}
+              onRefresh={refetchReleases}
+              tintColor={theme.primary}
+            />
+          }
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: theme.subtle }]}>
+              No releases from your repositories yet.
             </Text>
           }
         />
@@ -411,7 +648,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingTop: 56,
-    paddingBottom: 12,
+    paddingBottom: 10,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
@@ -428,41 +665,46 @@ const styles = StyleSheet.create({
     top: 0,
     right: -1,
   },
-  loader: { flex: 1 },
-  list: { padding: 12, gap: 10 },
-  // Event card
-  eventCard: {
+  tabFilter: { paddingHorizontal: 16, paddingVertical: 10 },
+  tabScroll: { gap: 8, paddingRight: 16 },
+  tabBtn: {
     flexDirection: "row",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 12,
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
   },
-  eventLeft: { alignItems: "center", width: 32 },
-  eventIconBadge: {
-    marginTop: -8,
-    borderRadius: 8,
-    padding: 1,
+  tabBtnText: { fontSize: 13, fontWeight: "600" },
+  loader: { flex: 1 },
+  list: { paddingBottom: 24 },
+  releasesList: { padding: 12, gap: 10 },
+  eventRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
   },
-  eventBody: { flex: 1, gap: 3 },
+  eventLeft: { alignItems: "center", width: 28 },
+  eventIconBadge: { marginTop: -6, borderRadius: 8, padding: 1 },
+  eventBody: { flex: 1, gap: 2 },
   eventActor: { fontSize: 14, fontWeight: "600" },
   eventLabel: { fontWeight: "400" },
   eventRepo: { fontWeight: "600" },
   eventMeta: { fontSize: 13 },
-  eventTime: { fontSize: 12 },
+  eventTime: { fontSize: 12, marginTop: 1 },
   empty: { textAlign: "center", marginTop: 80, fontSize: 15 },
-  // Modal
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   backdropPress: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderRightWidth: StyleSheet.hairlineWidth,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingBottom: 34,
     maxHeight: "85%",
   },

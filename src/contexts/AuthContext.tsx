@@ -1,9 +1,11 @@
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
+import { unregisterWidgetBackgroundSync } from "../lib/widgets/backgroundSync";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { clearToken, getOctokit, setToken } from "../lib/api/github";
 import { deleteItem, getItem, setItem } from "../lib/storage";
+import { clearWidgetData } from "../lib/widgets/sync";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
@@ -220,6 +222,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await clearToken();
       await deleteItem(USER_STORAGE_KEY);
       setUser(null);
+      await unregisterWidgetBackgroundSync();
+      await clearWidgetData();
     } finally {
       setIsLoading(false);
     }

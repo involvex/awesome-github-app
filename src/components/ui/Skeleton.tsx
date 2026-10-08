@@ -99,3 +99,39 @@ const skStyles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10, alignItems: "center" },
   col: { flex: 1, gap: 6 },
 });
+
+export function SkeletonContributionGraph() {
+  return (
+    <View style={contribStyles.contribContainer}>
+      <Skeleton
+        width="40%"
+        height={12}
+      />
+      <View style={contribStyles.contribGraph}>
+        {Array.from({ length: 53 }).map((_, wi) => (
+          <View
+            key={wi}
+            style={contribStyles.contribWeek}
+          >
+            {Array.from({ length: 7 }).map((_, di) => (
+              <Skeleton
+                key={di}
+                width={11}
+                height={11}
+                borderRadius={2}
+                style={contribStyles.contribCell}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const contribStyles = StyleSheet.create({
+  contribContainer: { paddingHorizontal: 16, paddingTop: 12 },
+  contribGraph: { flexDirection: "row", gap: 3 },
+  contribWeek: { flexDirection: "column", gap: 3 },
+  contribCell: { width: 11, height: 11, borderRadius: 2 },
+});

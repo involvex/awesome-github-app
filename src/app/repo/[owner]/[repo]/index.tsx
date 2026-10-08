@@ -1,27 +1,175 @@
 import {
+  useRepo,
+  useRepoTopics,
+  useRepoReadme,
+  useRepoContents,
+  useCreateFork,
+  useBranches,
+  useRepoReleases,
+  useIssues,
+  usePullRequests,
+  isViewableTextFile,
+  type IssueState,
+  type PRState,
+} from "../../../../lib/api/hooks";
+import {
   ActivityIndicator,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import {
-  useRepo,
-  useRepoTopics,
-  useRepoReadme,
-} from "../../../../lib/api/hooks";
+import { FileViewer } from "../../../../components/repo/FileViewer";
 import { LanguageDot } from "../../../../components/ui/LanguageDot";
 import { Markdown } from "../../../../components/ui/Markdown";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useToast } from "../../../../contexts/ToastContext";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { toSafeGitHubUrl } from "../../../../lib/security";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { useAppTheme } from "../../../../lib/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 
-const TABS = ["About", "Issues", "PRs", "Actions", "Branches"] as const;
+const TABS = [
+  "About",
+  "Code",
+  "Releases",
+  "Issues",
+  "PRs",
+  "Actions",
+  "Branches",
+] as const;
 type RepoTab = (typeof TABS)[number];
+
+interface ForkResult {
+  ownerLogin: string;
+  name: string;
+  fullName: string;
+  cloneUrl: string;
+}
+
+function ForkSuccessModal({
+  fork,
+  visible,
+  onClose,
+  onViewFork,
+}: {
+  fork: ForkResult | null;
+  visible: boolean;
+  onClose: () => void;
+  onViewFork: () => void;
+}) {
+  const theme = useAppTheme();
+  const { showToast } = useToast();
+  const cloneCommand = fork ? `git clone ${fork.cloneUrl}` : "";
+
+  async function handleCopyClone() {
+    if (!cloneCommand) return;
+    await Clipboard.setStringAsync(cloneCommand);
+    showToast("Clone command copied", "success");
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <Pressable
+          style={styles.backdropPress}
+          onPress={onClose}
+        />
+        <View
+          style={[
+            styles.sheet,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          <View style={[styles.handle, { backgroundColor: theme.border }]} />
+          <View style={styles.sheetHeader}>
+            <Ionicons
+              name="git-branch"
+              size={22}
+              color={theme.primary}
+            />
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              Fork created
+            </Text>
+          </View>
+          {!!fork && (
+            <Text style={[styles.sheetSubtitle, { color: theme.subtle }]}>
+              {fork.fullName}
+            </Text>
+          )}
+
+          <View
+            style={[
+              styles.cloneBox,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+          >
+            <Text
+              style={[styles.cloneCommand, { color: theme.text }]}
+              selectable
+              numberOfLines={3}
+            >
+              {cloneCommand}
+            </Text>
+            <Pressable
+              onPress={handleCopyClone}
+              style={({ pressed }) => [
+                styles.copyBtn,
+                { backgroundColor: theme.primary },
+                pressed && { opacity: 0.85 },
+              ]}
+              accessibilityLabel="Copy clone command"
+            >
+              <Ionicons
+                name="copy-outline"
+                size={16}
+                color="#fff"
+              />
+              <Text style={styles.copyBtnText}>Copy</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.sheetActions}>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.sheetSecondaryBtn,
+                { borderColor: theme.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[styles.sheetSecondaryText, { color: theme.text }]}>
+                Stay here
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={onViewFork}
+              style={({ pressed }) => [
+                styles.sheetPrimaryBtn,
+                { backgroundColor: theme.primary },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.sheetPrimaryText}>View your fork</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 function AboutTab({ owner, repo }: { owner: string; repo: string }) {
   const theme = useAppTheme();
@@ -165,39 +313,768 @@ function AboutTab({ owner, repo }: { owner: string; repo: string }) {
   );
 }
 
-function ComingSoonTab({
-  name,
-  icon,
-}: {
-  name: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) {
+function CodeTab({ owner, repo }: { owner: string; repo: string }) {
   const theme = useAppTheme();
+  const [currentPath, setCurrentPath] = useState("");
+  const [selectedFile, setSelectedFile] = useState<{
+    path: string;
+    html_url: string | null;
+  } | null>(null);
+  const { data, isLoading } = useRepoContents(owner, repo, currentPath);
+
+  const pathParts = currentPath ? currentPath.split("/") : [];
+
+  function formatSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   return (
-    <View style={styles.emptyState}>
-      <View
-        style={[styles.emptyIconContainer, { backgroundColor: theme.surface }]}
+    <View style={styles.tabContent}>
+      {/* Breadcrumb */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.breadcrumb}
+        contentContainerStyle={styles.breadcrumbContent}
       >
-        <Ionicons
-          name={icon}
-          size={32}
-          color={theme.muted}
-        />
-      </View>
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>{name}</Text>
-      <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
-        The {name.toLowerCase()} feature is coming soon to the app.
-      </Text>
+        <Pressable onPress={() => setCurrentPath("")}>
+          <Text style={[styles.breadcrumbPart, { color: theme.primary }]}>
+            {repo}
+          </Text>
+        </Pressable>
+        {pathParts.map((part, i) => (
+          <View
+            key={i}
+            style={styles.breadcrumbItem}
+          >
+            <Text style={[styles.breadcrumbSep, { color: theme.muted }]}>
+              {" / "}
+            </Text>
+            <Pressable
+              onPress={() =>
+                setCurrentPath(pathParts.slice(0, i + 1).join("/"))
+              }
+            >
+              <Text
+                style={[
+                  styles.breadcrumbPart,
+                  {
+                    color:
+                      i === pathParts.length - 1 ? theme.text : theme.primary,
+                  },
+                ]}
+              >
+                {part}
+              </Text>
+            </Pressable>
+          </View>
+        ))}
+      </ScrollView>
+
       <View
         style={[
-          styles.comingSoonBadge,
+          styles.card,
           { backgroundColor: theme.surface, borderColor: theme.border },
         ]}
       >
-        <Text style={[styles.comingSoonText, { color: theme.primary }]}>
-          COMING SOON
+        {isLoading ? (
+          <ActivityIndicator
+            color={theme.primary}
+            style={{ marginVertical: 20 }}
+          />
+        ) : !data?.length ? (
+          <Text style={[styles.emptyText, { color: theme.subtle }]}>
+            This directory is empty.
+          </Text>
+        ) : (
+          <>
+            {/* Directories first, then files */}
+            {[
+              ...data.filter(f => f.type === "dir"),
+              ...data.filter(f => f.type !== "dir"),
+            ].map((item, idx, arr) => (
+              <Pressable
+                key={item.sha + item.path}
+                style={[
+                  styles.fileRow,
+                  idx < arr.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: theme.border,
+                  },
+                ]}
+                onPress={() => {
+                  if (item.type === "dir") {
+                    setCurrentPath(item.path);
+                  } else if (isViewableTextFile(item.name, item.size)) {
+                    setSelectedFile({
+                      path: item.path,
+                      html_url: item.html_url,
+                    });
+                  } else if (item.html_url) {
+                    const safeUrl = toSafeGitHubUrl(item.html_url);
+                    if (safeUrl) {
+                      Linking.openURL(safeUrl);
+                    }
+                  }
+                }}
+              >
+                <Ionicons
+                  name={item.type === "dir" ? "folder" : "document-outline"}
+                  size={16}
+                  color={item.type === "dir" ? "#e3b341" : theme.subtle}
+                  style={styles.fileIcon}
+                />
+                <Text
+                  style={[styles.fileName, { color: theme.text }]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+                {item.type !== "dir" && item.size > 0 && (
+                  <Text style={[styles.fileSize, { color: theme.muted }]}>
+                    {formatSize(item.size)}
+                  </Text>
+                )}
+                {item.type === "dir" && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color={theme.muted}
+                  />
+                )}
+              </Pressable>
+            ))}
+          </>
+        )}
+      </View>
+      <FileViewer
+        owner={owner}
+        repo={repo}
+        path={selectedFile?.path ?? null}
+        htmlUrl={selectedFile?.html_url ?? null}
+        visible={selectedFile !== null}
+        onClose={() => setSelectedFile(null)}
+      />
+    </View>
+  );
+}
+
+function BranchesTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const { data: repoData } = useRepo(owner, repo);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useBranches(owner, repo);
+
+  const branches = data?.pages.flatMap(p => p) ?? [];
+  const defaultBranch = repoData?.default_branch;
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        style={{ flex: 1, padding: 32 }}
+        color={theme.primary}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      {branches.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="git-branch-outline"
+            size={32}
+            color={theme.muted}
+          />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No branches
+          </Text>
+        </View>
+      ) : (
+        branches.map(item => (
+          <View
+            key={item.name}
+            style={[
+              styles.branchRow,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <Ionicons
+              name="git-branch-outline"
+              size={16}
+              color={theme.muted}
+            />
+            <Text
+              style={[styles.branchName, { color: theme.text }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            {item.name === defaultBranch && (
+              <View
+                style={[
+                  styles.branchBadge,
+                  {
+                    backgroundColor: theme.primary + "20",
+                    borderColor: theme.primary,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.branchBadgeText, { color: theme.primary }]}
+                >
+                  default
+                </Text>
+              </View>
+            )}
+            {item.protected && (
+              <Ionicons
+                name="lock-closed-outline"
+                size={14}
+                color={theme.muted}
+              />
+            )}
+          </View>
+        ))
+      )}
+      {isFetchingNextPage && (
+        <ActivityIndicator
+          style={{ paddingVertical: 16 }}
+          color={theme.primary}
+        />
+      )}
+      {hasNextPage && !isFetchingNextPage && (
+        <Pressable
+          style={[
+            styles.loadMoreBtn,
+            { borderColor: theme.border, backgroundColor: theme.surface },
+          ]}
+          onPress={() => fetchNextPage()}
+        >
+          <Text style={[styles.loadMoreText, { color: theme.primary }]}>
+            Load more
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function ReleasesTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const { data, isLoading } = useRepoReleases(owner, repo);
+
+  if (isLoading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Ionicons
+          name="rocket-outline"
+          size={32}
+          color={theme.muted}
+        />
+        <Text style={[styles.emptyTitle, { color: theme.text }]}>
+          No releases
+        </Text>
+        <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+          This repository has no published releases yet.
         </Text>
       </View>
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      {data.map(release => (
+        <Pressable
+          key={release.id}
+          style={[
+            styles.releaseCard,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          onPress={() => Linking.openURL(release.html_url)}
+        >
+          <View style={styles.releaseHeader}>
+            <Text style={[styles.releaseTag, { color: theme.primary }]}>
+              {release.tag_name}
+            </Text>
+            {release.prerelease && (
+              <View
+                style={[styles.prereleaseBadge, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.prereleaseText, { color: theme.subtle }]}>
+                  Pre-release
+                </Text>
+              </View>
+            )}
+            {release.draft && (
+              <View style={[styles.draftBadge, { borderColor: theme.border }]}>
+                <Text style={[styles.draftText, { color: theme.subtle }]}>
+                  Draft
+                </Text>
+              </View>
+            )}
+          </View>
+          {!!release.name && release.name !== release.tag_name && (
+            <Text style={[styles.releaseName, { color: theme.text }]}>
+              {release.name}
+            </Text>
+          )}
+          {!!release.body && (
+            <Text
+              style={[styles.releaseBody, { color: theme.subtle }]}
+              numberOfLines={3}
+            >
+              {release.body}
+            </Text>
+          )}
+          <View style={styles.releaseFooter}>
+            <Text style={[styles.releaseAuthor, { color: theme.muted }]}>
+              by {release.author}
+            </Text>
+            {release.published_at && (
+              <Text style={[styles.releaseDate, { color: theme.muted }]}>
+                {new Date(release.published_at).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function IssuesTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const [state, setState] = useState<IssueState>("open");
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useIssues(owner, repo, state);
+
+  const issues = data?.pages.flatMap(p => p) ?? [];
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        style={{ flex: 1, padding: 32 }}
+        color={theme.primary}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      <View
+        style={[
+          styles.filterBar,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        {(["open", "closed", "all"] as IssueState[]).map(s => (
+          <Pressable
+            key={s}
+            style={[
+              styles.filterChip,
+              state === s && {
+                backgroundColor: theme.primary,
+                borderColor: theme.primary,
+              },
+            ]}
+            onPress={() => setState(s)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: state === s ? "#fff" : theme.text },
+              ]}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {issues.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={32}
+            color={theme.muted}
+          />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No issues
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+            This repository has no {state} issues.
+          </Text>
+        </View>
+      ) : (
+        issues.map(issue => (
+          <Pressable
+            key={issue.id}
+            style={[
+              styles.issueRow,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+            onPress={() => Linking.openURL(issue.html_url)}
+          >
+            <View style={styles.issueHeader}>
+              <Text style={[styles.issueNumber, { color: theme.subtle }]}>
+                #{issue.number}
+              </Text>
+              <Text
+                style={[
+                  styles.issueState,
+                  {
+                    color: issue.state === "open" ? theme.success : theme.muted,
+                  },
+                ]}
+              >
+                {issue.state}
+              </Text>
+            </View>
+            <Text
+              style={[styles.issueTitle, { color: theme.text }]}
+              numberOfLines={2}
+            >
+              {issue.title}
+            </Text>
+            <View style={styles.issueMeta}>
+              {issue.user && (
+                <View style={styles.issueMetaItem}>
+                  <Avatar
+                    uri={issue.user.avatar_url}
+                    name={issue.user.login}
+                    size={12}
+                  />
+                  <Text style={[styles.issueMetaText, { color: theme.subtle }]}>
+                    {issue.user.login}
+                  </Text>
+                </View>
+              )}
+              {issue.labels.length > 0 && (
+                <View style={styles.issueLabels}>
+                  {issue.labels.slice(0, 3).map(label => {
+                    const labelObj = label as {
+                      name: string;
+                      color: string;
+                    };
+                    return (
+                      <View
+                        key={labelObj.name}
+                        style={[
+                          styles.issueLabel,
+                          {
+                            backgroundColor: `#${labelObj.color}20`,
+                            borderColor: `#${labelObj.color}`,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.issueLabelText,
+                            { color: `#${labelObj.color}` },
+                          ]}
+                        >
+                          {labelObj.name}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  {issue.labels.length > 3 && (
+                    <Text
+                      style={[styles.issueLabelMore, { color: theme.subtle }]}
+                    >
+                      +{issue.labels.length - 3} more
+                    </Text>
+                  )}
+                </View>
+              )}
+              <View style={styles.issueMetaItem}>
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={12}
+                  color={theme.muted}
+                />
+                <Text style={[styles.issueMetaText, { color: theme.subtle }]}>
+                  {issue.comments}
+                </Text>
+              </View>
+              <View style={styles.issueMetaItem}>
+                <Ionicons
+                  name="time-outline"
+                  size={12}
+                  color={theme.muted}
+                />
+                <Text style={[styles.issueMetaText, { color: theme.subtle }]}>
+                  {new Date(issue.updated_at).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        ))
+      )}
+
+      {isFetchingNextPage && (
+        <ActivityIndicator
+          style={{ paddingVertical: 16 }}
+          color={theme.primary}
+        />
+      )}
+      {hasNextPage && !isFetchingNextPage && (
+        <Pressable
+          style={[
+            styles.loadMoreBtn,
+            { borderColor: theme.border, backgroundColor: theme.surface },
+          ]}
+          onPress={() => fetchNextPage()}
+        >
+          <Text style={[styles.loadMoreText, { color: theme.primary }]}>
+            Load more
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function PullRequestsTab({ owner, repo }: { owner: string; repo: string }) {
+  const theme = useAppTheme();
+  const [state, setState] = useState<PRState>("open");
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    usePullRequests(owner, repo, state);
+
+  const prs = data?.pages.flatMap(p => p) ?? [];
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        style={{ flex: 1, padding: 32 }}
+        color={theme.primary}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.tabContent}>
+      <View
+        style={[
+          styles.filterBar,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        {(["open", "closed", "all"] as PRState[]).map(s => (
+          <Pressable
+            key={s}
+            style={[
+              styles.filterChip,
+              state === s && {
+                backgroundColor: theme.primary,
+                borderColor: theme.primary,
+              },
+            ]}
+            onPress={() => setState(s)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: state === s ? "#fff" : theme.text },
+              ]}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {prs.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="git-pull-request-outline"
+            size={32}
+            color={theme.muted}
+          />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
+            No pull requests
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: theme.subtle }]}>
+            This repository has no {state} pull requests.
+          </Text>
+        </View>
+      ) : (
+        prs.map(pr => (
+          <Pressable
+            key={pr.id}
+            style={[
+              styles.prRow,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+            onPress={() => Linking.openURL(pr.html_url)}
+          >
+            <View style={styles.prHeader}>
+              <Text style={[styles.prNumber, { color: theme.subtle }]}>
+                #{pr.number}
+              </Text>
+              <View style={styles.prStateContainer}>
+                {pr.draft && (
+                  <View
+                    style={[
+                      styles.prBadge,
+                      {
+                        backgroundColor: theme.muted + "20",
+                        borderColor: theme.muted,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.prBadgeText, { color: theme.muted }]}>
+                      Draft
+                    </Text>
+                  </View>
+                )}
+                {pr.merged && (
+                  <View
+                    style={[
+                      styles.prBadge,
+                      {
+                        backgroundColor: theme.primary + "20",
+                        borderColor: theme.primary,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.prBadgeText, { color: theme.primary }]}
+                    >
+                      Merged
+                    </Text>
+                  </View>
+                )}
+                {!pr.draft && !pr.merged && (
+                  <View
+                    style={[
+                      styles.prBadge,
+                      {
+                        backgroundColor:
+                          pr.state === "open"
+                            ? theme.success + "20"
+                            : theme.muted + "20",
+                        borderColor:
+                          pr.state === "open" ? theme.success : theme.muted,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.prBadgeText,
+                        {
+                          color:
+                            pr.state === "open" ? theme.success : theme.muted,
+                        },
+                      ]}
+                    >
+                      {pr.state.charAt(0).toUpperCase() + pr.state.slice(1)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <Text
+              style={[styles.prTitle, { color: theme.text }]}
+              numberOfLines={2}
+            >
+              {pr.title}
+            </Text>
+            <View style={styles.prMeta}>
+              <View style={styles.prBranchRow}>
+                <View style={styles.prBranch}>
+                  <Ionicons
+                    name="git-branch-outline"
+                    size={12}
+                    color={theme.muted}
+                  />
+                  <Text style={[styles.prBranchText, { color: theme.text }]}>
+                    {pr.head.ref}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={12}
+                  color={theme.muted}
+                />
+                <View style={styles.prBranch}>
+                  <Ionicons
+                    name="git-branch-outline"
+                    size={12}
+                    color={theme.muted}
+                  />
+                  <Text style={[styles.prBranchText, { color: theme.text }]}>
+                    {pr.base.ref}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.prMetaRow}>
+                <View style={styles.prMetaItem}>
+                  <Avatar
+                    uri={pr.user.avatar_url}
+                    name={pr.user.login}
+                    size={12}
+                  />
+                  <Text style={[styles.prMetaText, { color: theme.subtle }]}>
+                    {pr.user.login}
+                  </Text>
+                </View>
+                <View style={styles.prMetaItem}>
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={12}
+                    color={theme.muted}
+                  />
+                  <Text style={[styles.prMetaText, { color: theme.subtle }]}>
+                    {pr.comments + pr.review_comments}
+                  </Text>
+                </View>
+                <View style={styles.prMetaItem}>
+                  <Ionicons
+                    name="time-outline"
+                    size={12}
+                    color={theme.muted}
+                  />
+                  <Text style={[styles.prMetaText, { color: theme.subtle }]}>
+                    {new Date(pr.updated_at).toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        ))
+      )}
+
+      {isFetchingNextPage && (
+        <ActivityIndicator
+          style={{ paddingVertical: 16 }}
+          color={theme.primary}
+        />
+      )}
+      {hasNextPage && !isFetchingNextPage && (
+        <Pressable
+          style={[
+            styles.loadMoreBtn,
+            { borderColor: theme.border, backgroundColor: theme.surface },
+          ]}
+          onPress={() => fetchNextPage()}
+        >
+          <Text style={[styles.loadMoreText, { color: theme.primary }]}>
+            Load more
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -209,8 +1086,63 @@ export default function RepoDetailScreen() {
   }>();
   const theme = useAppTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const { data, isLoading } = useRepo(owner!, repo!);
   const [activeTab, setActiveTab] = useState<RepoTab>("About");
+  const [forkResult, setForkResult] = useState<ForkResult | null>(null);
+  const forkMutation = useCreateFork(owner!, repo!);
+
+  const isOwner = !!data && !!user && data.owner.login === user.login;
+
+  async function handleShare() {
+    if (!data) return;
+    try {
+      await Share.share({ message: data.html_url });
+    } catch {
+      // share sheet dismissed — ignore
+    }
+  }
+
+  async function handleCopyLink() {
+    if (!data) return;
+    await Clipboard.setStringAsync(data.html_url);
+    showToast("Link copied", "success");
+  }
+
+  async function handleCopyCloneUrl() {
+    if (!data) return;
+    await Clipboard.setStringAsync(
+      data.clone_url ??
+        `https://github.com/${data.owner.login}/${data.name}.git`,
+    );
+    showToast("Clone URL copied", "success");
+  }
+
+  async function handleFork() {
+    try {
+      const forked = await forkMutation.mutateAsync();
+      const ownerLogin = forked.owner?.login ?? user?.login ?? "";
+      const name = forked.name ?? repo!;
+      const cloneUrl =
+        forked.clone_url ?? `https://github.com/${ownerLogin}/${name}.git`;
+      setForkResult({
+        ownerLogin,
+        name,
+        fullName: forked.full_name ?? `${ownerLogin}/${name}`,
+        cloneUrl,
+      });
+    } catch {
+      showToast("Failed to create fork. Please try again.", "error");
+    }
+  }
+
+  function handleViewFork() {
+    if (!forkResult) return;
+    const { ownerLogin, name } = forkResult;
+    setForkResult(null);
+    router.push(`/repo/${ownerLogin}/${name}`);
+  }
 
   if (isLoading || !data) {
     return (
@@ -225,6 +1157,12 @@ export default function RepoDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ForkSuccessModal
+        fork={forkResult}
+        visible={!!forkResult}
+        onClose={() => setForkResult(null)}
+        onViewFork={handleViewFork}
+      />
       <ScrollView stickyHeaderIndices={[1]}>
         {/* Repo Header */}
         <View
@@ -271,22 +1209,24 @@ export default function RepoDetailScreen() {
           </View>
 
           <View style={styles.actionRow}>
-            <Pressable
-              style={[
-                styles.actionBtn,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-              onPress={() => router.push(`/repo/${owner}/${repo}/settings`)}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={16}
-                color={theme.text}
-              />
-              <Text style={[styles.actionBtnText, { color: theme.text }]}>
-                Settings
-              </Text>
-            </Pressable>
+            {isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => router.push(`/repo/${owner}/${repo}/settings`)}
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={16}
+                  color={theme.text}
+                />
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Settings
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={[
                 styles.actionBtn,
@@ -303,22 +1243,98 @@ export default function RepoDetailScreen() {
                 Actions
               </Text>
             </Pressable>
+            {isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={() => router.push(`/repo/${owner}/${repo}/pages`)}
+              >
+                <Ionicons
+                  name="globe-outline"
+                  size={16}
+                  color={theme.primary}
+                />
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Pages
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={[
                 styles.actionBtn,
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
-              onPress={() => router.push(`/repo/${owner}/${repo}/pages`)}
+              onPress={handleShare}
             >
               <Ionicons
-                name="globe-outline"
+                name="share-outline"
                 size={16}
-                color={theme.primary}
+                color={theme.text}
               />
               <Text style={[styles.actionBtnText, { color: theme.text }]}>
-                Pages
+                Share
               </Text>
             </Pressable>
+            <Pressable
+              style={[
+                styles.actionBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={handleCopyLink}
+            >
+              <Ionicons
+                name="link-outline"
+                size={16}
+                color={theme.text}
+              />
+              <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                Copy link
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.actionBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={handleCopyCloneUrl}
+            >
+              <Ionicons
+                name="code-outline"
+                size={16}
+                color={theme.text}
+              />
+              <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                Copy clone URL
+              </Text>
+            </Pressable>
+            {!isOwner && (
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={handleFork}
+                disabled={forkMutation.isPending}
+              >
+                {forkMutation.isPending ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.primary}
+                  />
+                ) : (
+                  <Ionicons
+                    name="git-branch-outline"
+                    size={16}
+                    color={theme.primary}
+                  />
+                )}
+                <Text style={[styles.actionBtnText, { color: theme.text }]}>
+                  Fork
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -364,6 +1380,18 @@ export default function RepoDetailScreen() {
         {/* Tab Content */}
         {activeTab === "About" && (
           <AboutTab
+            owner={owner!}
+            repo={repo!}
+          />
+        )}
+        {activeTab === "Code" && (
+          <CodeTab
+            owner={owner!}
+            repo={repo!}
+          />
+        )}
+        {activeTab === "Releases" && (
+          <ReleasesTab
             owner={owner!}
             repo={repo!}
           />
@@ -426,21 +1454,21 @@ export default function RepoDetailScreen() {
           </Pressable>
         )}
         {activeTab === "Issues" && (
-          <ComingSoonTab
-            name="Issues"
-            icon="alert-circle-outline"
+          <IssuesTab
+            owner={owner!}
+            repo={repo!}
           />
         )}
         {activeTab === "PRs" && (
-          <ComingSoonTab
-            name="Pull Requests"
-            icon="git-pull-request-outline"
+          <PullRequestsTab
+            owner={owner!}
+            repo={repo!}
           />
         )}
         {activeTab === "Branches" && (
-          <ComingSoonTab
-            name="Branches"
-            icon="git-branch-outline"
+          <BranchesTab
+            owner={owner!}
+            repo={repo!}
           />
         )}
       </ScrollView>
@@ -594,5 +1622,301 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
+  },
+  branchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  branchName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  branchBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  branchBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  loadMoreBtn: {
+    alignItems: "center",
+    paddingVertical: 12,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+  backdropPress: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    gap: 12,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: "700" },
+  sheetSubtitle: { fontSize: 14, fontWeight: "500" },
+  cloneBox: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 12,
+    gap: 10,
+  },
+  cloneCommand: {
+    fontSize: 13,
+    fontFamily: "monospace",
+    lineHeight: 18,
+  },
+  copyBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  copyBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  sheetActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  sheetSecondaryBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  sheetSecondaryText: { fontSize: 15, fontWeight: "600" },
+  sheetPrimaryBtn: {
+    flex: 1.4,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  sheetPrimaryText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+  breadcrumb: { marginBottom: 8 },
+  breadcrumbContent: { flexDirection: "row", alignItems: "center" },
+  breadcrumbItem: { flexDirection: "row", alignItems: "center" },
+  breadcrumbPart: { fontSize: 14, fontWeight: "600" },
+  breadcrumbSep: { fontSize: 14 },
+  fileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 10,
+  },
+  fileIcon: { width: 18 },
+  fileName: { flex: 1, fontSize: 14 },
+  fileSize: { fontSize: 12 },
+  releaseCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 12,
+  },
+  releaseHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  releaseTag: { fontSize: 15, fontWeight: "700" },
+  prereleaseBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  prereleaseText: { fontSize: 11, fontWeight: "600" },
+  draftBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  draftText: { fontSize: 11, fontWeight: "600" },
+  releaseName: { fontSize: 16, fontWeight: "600" },
+  releaseBody: { fontSize: 14, lineHeight: 20 },
+  releaseFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  releaseAuthor: { fontSize: 12 },
+  releaseDate: { fontSize: 12 },
+  filterBar: {
+    flexDirection: "row",
+    gap: 8,
+    padding: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  issueRow: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
+  },
+  issueHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  issueNumber: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  issueState: {
+    fontSize: 11,
+    fontWeight: "600",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  issueTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  issueMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+  issueMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  issueMetaText: {
+    fontSize: 12,
+  },
+  issueLabels: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+  },
+  issueLabel: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  issueLabelText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  issueLabelMore: {
+    fontSize: 11,
+    marginLeft: 4,
+  },
+  prRow: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
+  },
+  prHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  prNumber: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  prStateContainer: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  prBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  prBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  prTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  prMeta: {
+    gap: 8,
+    marginTop: 4,
+  },
+  prBranchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  prBranch: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  prBranchText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  prMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 10,
+  },
+  prMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  prMetaText: {
+    fontSize: 12,
   },
 });

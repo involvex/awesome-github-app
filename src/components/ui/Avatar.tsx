@@ -28,6 +28,7 @@ export function Avatar({ uri, name, size = 36, borderRadius }: AvatarProps) {
         style={{ width: size, height: size, borderRadius: r }}
         contentFit="cover"
         transition={200}
+        cachePolicy="memory-disk"
       />
     );
   }

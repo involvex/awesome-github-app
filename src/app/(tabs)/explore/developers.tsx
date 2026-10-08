@@ -34,7 +34,9 @@ export default function DevelopersScreen() {
     language === "all"
       ? "followers:>1000"
       : `language:${language} followers:>100`;
-  const { data, isLoading } = useSearch(q, "users");
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useSearch(q, "users");
+  const users = data?.pages.flatMap(p => p as SearchUserItem[]) ?? [];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -67,8 +69,17 @@ export default function DevelopersScreen() {
         />
       ) : (
         <FlatList
-          data={data as SearchUserItem[]}
+          data={users}
           keyExtractor={item => String(item.id)}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <ActivityIndicator style={{ padding: 16 }} />
+            ) : null
+          }
           renderItem={({ item }) => (
             <Pressable
               style={[styles.row, { borderBottomColor: theme.border }]}

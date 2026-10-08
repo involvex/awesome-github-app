@@ -1,9 +1,67 @@
-## [0.0.5](https://github.com/involvex/awesome-github-app/compare/v0.0.3...v0.0.5) (2026-02-27)
+## [0.0.19](https://github.com/involvex/awesome-github-app/compare/v0.0.18...v0.0.19) (2026-09-18)
+
+### Bug Fixes
+
+- **android-ci:** add NDK 27 setup ([b97e6a9](https://github.com/involvex/awesome-github-app/commit/b97e6a9002083a64894002df334c91edabe80538))
+- **android-ci:** use full sdkmanager path ([ad3fcf6](https://github.com/involvex/awesome-github-app/commit/ad3fcf6e68c50fc06a857c8506705876024f7d5b))
+
+### Features
+
+- implement Issues/PR tabs, optimistic updates, virtualized lists, rate limit warnings, and test infrastructure ([5b72f82](https://github.com/involvex/awesome-github-app/commit/5b72f8278e2de028d65fd03465a8957e6cb20712))
+- **widgets:** add Android home-screen widgets with background sync ([a486aef](https://github.com/involvex/awesome-github-app/commit/a486aefa2a992cf0f8f3105ce0b0938ac733b676))
+- **widgets:** overhaul Android home screen widgets and add file viewer ([49833b8](https://github.com/involvex/awesome-github-app/commit/49833b8550cbe633cdd4025b8b7d4d1e16cf4b2c))
+
+## [0.0.18](https://github.com/involvex/awesome-github-app/compare/0.0.17...v0.0.18) (2026-09-08)
+
+### Bug Fixes
+
+- mock expo-image in jest to prevent native module error ([523137c](https://github.com/involvex/awesome-github-app/commit/523137ce13501e77cb58758e6173b66f2fa13806))
+
+### Features
+
+- multi-type search suggestions, skeleton loaders, persistent starred state ([ed21d83](https://github.com/involvex/awesome-github-app/commit/ed21d83793820f03679767f8aa6151aeac7ee031))
+- quick wins, widgets foundation, and docs updates ([4d8d5ac](https://github.com/involvex/awesome-github-app/commit/4d8d5acd9fa400be155d122eb0a887bde11909ba))
+- star/unstar actions, releases tab, search suggestions ([a3ee548](https://github.com/involvex/awesome-github-app/commit/a3ee54854a24ea808ce37bdef3432ab306d05154))
+
+## [0.0.17](https://github.com/involvex/awesome-github-app/compare/0.0.16...0.0.17) (2026-07-27)
+
+### Features
+
+- upgrade to Expo 57 and improve feed, explore, and fork UX ([cba8156](https://github.com/involvex/awesome-github-app/commit/cba81567d28c53507b6d497193f427239132935a))
+
+## [0.0.16](https://github.com/involvex/awesome-github-app/compare/0.0.15...0.0.16) (2026-06-27)
+
+## [0.0.15](https://github.com/involvex/awesome-github-app/compare/0.0.14...0.0.15) (2026-04-14)
+
+## [0.0.14](https://github.com/involvex/awesome-github-app/compare/0.0.13...0.0.14) (2026-04-10)
+
+## [0.0.13](https://github.com/involvex/awesome-github-app/compare/v0.0.12...0.0.13) (2026-04-04)
+
+## [0.0.12](https://github.com/involvex/awesome-github-app/compare/0.0.11...v0.0.12) (2026-03-16)
+
+## [0.0.11](https://github.com/involvex/awesome-github-app/compare/0.0.10...0.0.11) (2026-03-09)
+
+## [0.0.10](https://github.com/involvex/awesome-github-app/compare/0.0.9...0.0.10) (2026-03-09)
+
+### Features
+
+- add infinite scroll pagination and notification support ([b56f3ec](https://github.com/involvex/awesome-github-app/commit/b56f3ec78efdee1d6fe573621a41c8e1daef39f2))
+
+## [0.0.9](https://github.com/involvex/awesome-github-app/compare/0.0.8...0.0.9) (2026-03-09)
+
+## [0.0.8](https://github.com/involvex/awesome-github-app/compare/0.0.7...0.0.8) (2026-03-09)
+
+## [0.0.7](https://github.com/involvex/awesome-github-app/compare/v0.0.6...0.0.7) (2026-02-28)
+
+## [0.0.6](https://github.com/involvex/awesome-github-app/compare/v0.0.3...v0.0.6) (2026-02-28)
 
 ### Bug Fixes
 
 - remove sensitive data from OAuth logs and update build trigger ([ec69370](https://github.com/involvex/awesome-github-app/commit/ec69370e95ce23c7a95def0574f1d86d32040b88))
+- **ui:** cast Markdown image styles to ImageStyle to resolve TS incompatibility ([13d228f](https://github.com/involvex/awesome-github-app/commit/13d228f7b12917dd937adad8feb7e54797a0ab76))
+- **ui:** resolve React 19 key spread error and improve Markdown README layout ([3d5dc47](https://github.com/involvex/awesome-github-app/commit/3d5dc47924c5660237efdd6ca61168cc92ba6543))
 - **ui:** resolve React 19 key spread error and improve Markdown README layout ([5748df7](https://github.com/involvex/awesome-github-app/commit/5748df795b2b0c17983e8f5b7fb8c6ae78686215))
+- **ui:** use correct types for Markdown styles to resolve ESLint any warning ([065dd95](https://github.com/involvex/awesome-github-app/commit/065dd953bbfc59ece0d7622584be38dbd4493c59))
 - **ui:** use proper types in Markdown image rule to resolve ESLint warnings ([5509e7b](https://github.com/involvex/awesome-github-app/commit/5509e7b145332bc4afd4635f1806f0c2479b9607))
 
 ## [0.0.3](https://github.com/involvex/awesome-github-app/compare/v0.0.2...v0.0.3) (2026-02-23)

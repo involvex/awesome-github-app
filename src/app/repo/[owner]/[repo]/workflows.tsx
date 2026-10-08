@@ -1,19 +1,22 @@
 import {
+  useCancelRun,
+  useDispatchWorkflow,
+  useDownloadArtifact,
+  useRunArtifacts,
+  useWorkflowRuns,
+  useWorkflows,
+} from "../../../../lib/api/hooks";
+import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import {
-  useCancelRun,
-  useDispatchWorkflow,
-  useWorkflowRuns,
-  useWorkflows,
-} from "../../../../lib/api/hooks";
 import { EmptyState } from "../../../../components/ui/EmptyState";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAppTheme } from "../../../../lib/theme";
@@ -26,6 +29,9 @@ type WorkflowItem = NonNullable<
 >[number];
 type WorkflowRun = NonNullable<
   ReturnType<typeof useWorkflowRuns>["data"]
+>[number];
+type RunArtifact = NonNullable<
+  ReturnType<typeof useRunArtifacts>["data"]
 >[number];
 
 const STATUS_ICON: Record<
@@ -41,14 +47,127 @@ const STATUS_ICON: Record<
   cancelled: { icon: "ban-outline", color: "#8B949E" },
 };
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ArtifactList({
+  owner,
+  repo,
+  runId,
+}: {
+  owner: string;
+  repo: string;
+  runId: number;
+}) {
+  const theme = useAppTheme();
+  const { data, isLoading } = useRunArtifacts(owner, repo, runId);
+  const { mutate: download, isPending } = useDownloadArtifact(owner, repo);
+
+  if (isLoading) {
+    return (
+      <ActivityIndicator
+        style={{ paddingVertical: 12 }}
+        color={theme.primary}
+      />
+    );
+  }
+
+  const artifacts = data ?? [];
+
+  if (artifacts.length === 0) {
+    return (
+      <Text style={[styles.artifactEmpty, { color: theme.subtle }]}>
+        No artifacts for this run.
+      </Text>
+    );
+  }
+
+  return (
+    <View style={[styles.artifactContainer, { borderTopColor: theme.border }]}>
+      <Text style={[styles.artifactHeader, { color: theme.subtle }]}>
+        Artifacts ({artifacts.length})
+      </Text>
+      {artifacts.map((artifact: RunArtifact) => {
+        const expired =
+          artifact.expires_at && new Date(artifact.expires_at) < new Date();
+        return (
+          <View
+            key={artifact.id}
+            style={[styles.artifactRow, { borderBottomColor: theme.border }]}
+          >
+            <Ionicons
+              name="archive-outline"
+              size={16}
+              color={theme.muted}
+            />
+            <View style={styles.artifactInfo}>
+              <Text
+                style={[styles.artifactName, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                {artifact.name}
+              </Text>
+              <Text style={[styles.artifactMeta, { color: theme.subtle }]}>
+                {formatBytes(artifact.size_in_bytes)}
+                {expired ? " · Expired" : ""}
+              </Text>
+            </View>
+            <Pressable
+              disabled={expired || isPending}
+              onPress={() =>
+                download(artifact.id, {
+                  onSuccess: url => Linking.openURL(url),
+                  onError: () =>
+                    Alert.alert(
+                      "Download failed",
+                      "Could not download artifact.",
+                    ),
+                })
+              }
+              style={[
+                styles.downloadBtn,
+                {
+                  borderColor: expired ? theme.border : theme.primary,
+                  opacity: expired || isPending ? 0.4 : 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name="download-outline"
+                size={14}
+                color={expired ? theme.muted : theme.primary}
+              />
+              <Text
+                style={[
+                  styles.downloadText,
+                  { color: expired ? theme.muted : theme.primary },
+                ]}
+              >
+                {expired ? "Expired" : "Download"}
+              </Text>
+            </Pressable>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function RunRow({
   run,
   owner,
   repo,
+  isExpanded,
+  onToggle,
 }: {
   run: WorkflowRun;
   owner: string;
   repo: string;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
   const theme = useAppTheme();
   const { mutate: cancel, isPending } = useCancelRun(owner, repo);
@@ -59,34 +178,59 @@ function RunRow({
   };
 
   return (
-    <View style={[styles.runRow, { borderBottomColor: theme.border }]}>
-      <Ionicons
-        name={icon}
-        size={20}
-        color={color}
-      />
-      <View style={styles.runInfo}>
-        <Text
-          style={[styles.runName, { color: theme.text }]}
-          numberOfLines={1}
-        >
-          {run.name}
-        </Text>
-        <Text style={[styles.runMeta, { color: theme.subtle }]}>
-          #{run.run_number} · {run.actor?.login} ·{" "}
-          {formatDistanceToNow(new Date(run.created_at), { addSuffix: true })}
-        </Text>
-      </View>
-      {(run.status === "in_progress" || run.status === "queued") && (
-        <Pressable
-          onPress={() => cancel(run.id)}
-          disabled={isPending}
-          style={[styles.cancelBtn, { borderColor: theme.danger }]}
-        >
-          <Text style={[styles.cancelText, { color: theme.danger }]}>
-            {isPending ? "…" : "Cancel"}
+    <View
+      style={{
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.border,
+      }}
+    >
+      <Pressable
+        onPress={onToggle}
+        style={styles.runRow}
+      >
+        <Ionicons
+          name={icon}
+          size={20}
+          color={color}
+        />
+        <View style={styles.runInfo}>
+          <Text
+            style={[styles.runName, { color: theme.text }]}
+            numberOfLines={1}
+          >
+            {run.name}
           </Text>
-        </Pressable>
+          <Text style={[styles.runMeta, { color: theme.subtle }]}>
+            #{run.run_number} · {run.actor?.login} ·{" "}
+            {formatDistanceToNow(new Date(run.created_at), { addSuffix: true })}
+          </Text>
+        </View>
+        {(run.status === "in_progress" || run.status === "queued") && (
+          <Pressable
+            onPress={e => {
+              e.stopPropagation?.();
+              cancel(run.id);
+            }}
+            disabled={isPending}
+            style={[styles.cancelBtn, { borderColor: theme.danger }]}
+          >
+            <Text style={[styles.cancelText, { color: theme.danger }]}>
+              {isPending ? "…" : "Cancel"}
+            </Text>
+          </Pressable>
+        )}
+        <Ionicons
+          name={isExpanded ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={theme.muted}
+        />
+      </Pressable>
+      {isExpanded && (
+        <ArtifactList
+          owner={owner}
+          repo={repo}
+          runId={run.id}
+        />
       )}
     </View>
   );
@@ -106,6 +250,7 @@ export default function WorkflowsScreen() {
   const [selectedWorkflow, setSelectedWorkflow] = useState<number | undefined>(
     undefined,
   );
+  const [expandedRunId, setExpandedRunId] = useState<number | null>(null);
   const { data: runs, isLoading: loadingRuns } = useWorkflowRuns(
     owner!,
     repo!,
@@ -243,6 +388,12 @@ export default function WorkflowsScreen() {
                   run={item}
                   owner={owner!}
                   repo={repo!}
+                  isExpanded={expandedRunId === item.id}
+                  onToggle={() =>
+                    setExpandedRunId(prev =>
+                      prev === item.id ? null : item.id,
+                    )
+                  }
                 />
               )}
               contentContainerStyle={{ paddingBottom: 40 }}
@@ -290,7 +441,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
   runInfo: { flex: 1, gap: 3 },
@@ -304,4 +454,42 @@ const styles = StyleSheet.create({
   },
   cancelText: { fontSize: 12, fontWeight: "600" },
   empty: { textAlign: "center", marginTop: 60, fontSize: 15 },
+  artifactContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  artifactHeader: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  artifactEmpty: {
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontStyle: "italic",
+  },
+  artifactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  artifactInfo: { flex: 1, gap: 2 },
+  artifactName: { fontSize: 13, fontWeight: "500" },
+  artifactMeta: { fontSize: 11 },
+  downloadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  downloadText: { fontSize: 12, fontWeight: "600" },
 });
