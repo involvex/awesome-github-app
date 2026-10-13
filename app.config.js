@@ -15,10 +15,6 @@ module.exports = ({ config }) => {
     name: isDebug ? "Awesome GH (Debug)" : config.name,
     android: {
       ...config.android,
-      // namespace must stay fixed so the R class is always in
-      // com.involvex.awesomegithubapp — the widget Kotlin providers
-      // hardcode this import. Only applicationId (package) changes per variant.
-      namespace: "com.involvex.awesomegithubapp",
       package: isDebug
         ? "com.involvex.awesomegithubapp.debug"
         : config.android?.package,
